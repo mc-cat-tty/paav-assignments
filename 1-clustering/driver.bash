@@ -12,7 +12,7 @@ BUILD_DIR="build"
 
 build_fn() {
     [ ! -e $BUILD_DIR ] && cmake -B $BUILD_DIR
-    cd $BUILD_DIR && make -j $(($(nproc)*1.5))
+    cd $BUILD_DIR && make -j $(($(nproc) + $(nproc)/2))
 }
 
 exec_fn() {
@@ -21,26 +21,26 @@ exec_fn() {
         exit 0
     fi
 
+    [ ! "$1" ] && { echo -e "Dataset does not exist. See usage with -h option"; exit 1; }
     DATASET_DIR="$MY_DIR/$1"
-    [ ! -e $DATASET_DIR ] && echo "Dataset does not exist"
 
-    ./cluster_extraction $DATASET_DIR
+    ./$BUILD_DIR/cluster_extraction $DATASET_DIR
 }
 
-if [ "$1" = "-h" ]; then
-    echo "Usage: $MY_NAME [exec|build]"
-    echo "  exec - Execution-only of cluster_extraction binary"
-    echo "  build - Just compile cluster_extraction binary"
-    echo -e "\nPass no arguments to perform both compilation and execution"
+# Compilation
+if [ "$1" = "build" ]; then
+    build_fn
     exit 0
 fi
 
-# Compilation
-if [ "$1" != "exec" ]; then
-    build_fn()
+# Invocation
+if [ "$1" = "exec" ]; then
+    exec_fn $2
+    exit 0
 fi
 
-# Invocation
-if [ "$1" != "build" ]; then
-    exec_fn()
-fi
+
+echo "Usage: $MY_NAME (exec|build)"
+echo "  exec - Execution-only of cluster_extraction binary"
+echo "  build - Just compile cluster_extraction binary"
+exit 0
