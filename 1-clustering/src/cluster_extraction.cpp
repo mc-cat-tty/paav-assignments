@@ -16,6 +16,7 @@
 #include <chrono>
 #include <unordered_set>
 #include "../include/tree_utilities.hpp"
+#include <boost/filesystem.hpp>
 
 #define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
