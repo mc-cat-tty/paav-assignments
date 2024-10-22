@@ -106,9 +106,7 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 	return clusters;	
 }
 
-void 
-ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
-{
+void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     // TODO: 1) Downsample the dataset 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
@@ -188,15 +186,19 @@ ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::
 
 int main(int argc, char* argv[])
 {
+    auto dataset_folder = argv[1];
     Renderer renderer;
+
     renderer.InitCamera(CameraAngle::XY);
     // Clear viewer
     renderer.ClearViewer();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
-    std::vector<boost::filesystem::path> stream(boost::filesystem::directory_iterator{"/home/thrun/Desktop/1_lidar/dataset_1"},
-                                                boost::filesystem::directory_iterator{});
+    std::vector<boost::filesystem::path> stream(
+        boost::filesystem::directory_iterator{dataset_folder},
+        boost::filesystem::directory_iterator{}
+    );
 
     // sort files in ascending (chronological) order
     std::sort(stream.begin(), stream.end());
@@ -209,13 +211,17 @@ int main(int argc, char* argv[])
 
         pcl::PCDReader reader;
         reader.read (streamIterator->string(), *input_cloud);
-        auto startTime = std::chrono::steady_clock::now();
 
+        auto startTime = std::chrono::steady_clock::now();
         ProcessAndRenderPointCloud(renderer,input_cloud);
         auto endTime = std::chrono::steady_clock::now();
         auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        std::cout << "[PointCloudProcessor<PointT>::ReadPcdFile] Loaded "
-        << input_cloud->points.size() << " data points from " << streamIterator->string() <<  "plane segmentation took " << elapsedTime.count() << " milliseconds" << std::endl;
+        
+        std::cout
+            << "[PointCloudProcessor<PointT>::ReadPcdFile] Loaded "
+            << input_cloud->points.size() << " data points from " << streamIterator->string()
+            <<  " plane segmentation took " << elapsedTime.count() << " milliseconds"
+            << std::endl;
 
         streamIterator++;
         if(streamIterator == stream.end())
