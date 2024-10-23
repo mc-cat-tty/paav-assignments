@@ -1,8 +1,17 @@
 {
-    "downsampling_leaf_size": [0.1, 0.1, 0.1],
+    "downsampling_leaf_size": [0.5, 0.5, 0.5],
     
     "cropping": {
         "min": [-20, -6, -2],
         "max": [30, 7, 5]
+    },
+
+    "pointcloud_viewer": {
+        "filtered": {
+            "render": true
+        },
+        "raw": {
+            "render": false
+        }
     }
 }

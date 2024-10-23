@@ -42,7 +42,18 @@ if [ "$1" = "exec" ]; then
 fi
 
 
-echo "Usage: $MY_NAME (exec|build)"
+# Tuning
+if [ "$1" = "tune" ]; then
+    while [[ 0 ]]; do
+        exec_fn $2
+        echo "Press key to restart the program"
+        read -n1 -s
+    done
+    exit 0
+fi
+
+echo "Usage: $MY_NAME (build|exec|tune)"
+echo "  tune - Cyclic execution of cluster_extraction binary for params tuning"
 echo "  exec - Execution-only of cluster_extraction binary"
 echo "  build - Just compile cluster_extraction binary"
 exit 0

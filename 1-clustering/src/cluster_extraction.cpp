@@ -108,6 +108,8 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 }
 
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+    auto &parameters = params::Params::getInstance();
+    
     // 1) Downsample the dataset
     std::cerr
         << "[Before downsampling] PC size: "
@@ -118,7 +120,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::VoxelGrid<pcl::PointXYZ> voxel_filterer;
     voxel_filterer.setInputCloud(cloud);
-    voxel_filterer.setLeafSize(0.1f, 0.1f, 0.1f);
+    voxel_filterer.setLeafSize(parameters.voxel_leaf_size);
     voxel_filterer.filter(*cloud_filtered);
 
     std::cerr
@@ -130,11 +132,13 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     // 2) here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
     cb.setInputCloud(cloud_filtered);
-    cb.setMin(Eigen::Vector4f (-20, -6, -2, 1));
-    cb.setMax(Eigen::Vector4f ( 30, 7, 5, 1));
+    cb.setMin(parameters.crop_box_min);
+    cb.setMax(parameters.crop_box_max);
     cb.filter(*cloud_filtered);
 
-    renderer.RenderPointCloud(cloud, "filteredCloud"); 
+    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
+    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
+
 
     // TODO: 3) Segmentation and apply RANSAC
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ>());

@@ -8,7 +8,8 @@
 namespace params {
     class Params {
         public:
-            Eigen::Vector3f voxel_leaf_size, crop_box_min, crop_box_max;
+            Eigen::Vector4f voxel_leaf_size, crop_box_min, crop_box_max;
+            bool render_raw_pc, render_filtered_pc;
 
             static Params& getInstance() {
                 static Params instance;
@@ -20,8 +21,8 @@ namespace params {
                 auto tree = ptree();
                 read_json(filename, tree);
 
-                auto extract_3d_vector = [&tree](std::string param_name) -> Eigen::Vector3f {
-                    Eigen::Vector3f res;
+                auto extract_3d_vector = [&tree](std::string param_name) -> Eigen::Vector4f {
+                    Eigen::Vector4f res;
                     unsigned i=0;
                     std::ranges::for_each(
                         tree.get_child(param_name),
@@ -30,6 +31,7 @@ namespace params {
                             res[i++] = std::stof(val.second.data());
                         }
                     );
+                    res[3] = 1;
                     return res;
                 };
 
@@ -37,6 +39,8 @@ namespace params {
                 voxel_leaf_size = extract_3d_vector("downsampling_leaf_size");
                 crop_box_min = extract_3d_vector("cropping.min"); 
                 crop_box_max = extract_3d_vector("cropping.max");
+                render_raw_pc = tree.get<bool>("pointcloud_viewer.raw.render");
+                render_filtered_pc = tree.get<bool>("pointcloud_viewer.filtered.render");
             }
 
         private:
