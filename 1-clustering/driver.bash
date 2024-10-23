@@ -9,6 +9,7 @@ set -e
 MY_DIR=$(dirname -- $(realpath -- $0))
 MY_NAME=$(basename --  $0)
 BUILD_DIR="build"
+PARAMS_FILE="params.json"
 
 build_fn() {
     [ ! -e $BUILD_DIR ] && cmake -B $BUILD_DIR
@@ -23,8 +24,9 @@ exec_fn() {
 
     [ ! "$1" ] && { echo -e "Dataset does not exist. See usage with -h option"; exit 1; }
     DATASET_DIR="$MY_DIR/$1"
+    PARAMS_ABS_FILENAME="$MY_DIR/$PARAMS_FILE"
 
-    ./$BUILD_DIR/cluster_extraction $DATASET_DIR
+    ./$BUILD_DIR/cluster_extraction $DATASET_DIR $PARAMS_ABS_FILENAME
 }
 
 # Compilation

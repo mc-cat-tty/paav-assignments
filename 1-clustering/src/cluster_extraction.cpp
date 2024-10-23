@@ -10,13 +10,14 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/crop_box.h>
-#include "../include/Renderer.hpp"
+#include <Renderer.hpp>
 #include <pcl/point_types.h>
 #include <pcl/common/common.h>
 #include <chrono>
 #include <unordered_set>
-#include "../include/tree_utilities.hpp"
+#include <tree_utilities.hpp>
 #include <boost/filesystem.hpp>
+#include <params.hpp>
 
 #define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
@@ -109,8 +110,7 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     // 1) Downsample the dataset
     std::cerr
-        << "[Before downsampling] PC volume and size: "
-        << cloud->width * cloud->height << " "
+        << "[Before downsampling] PC size: "
         << cloud->size()
         << " (" << pcl::getFieldsList(*cloud) << ") "
         << std::endl;
@@ -122,9 +122,8 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     voxel_filterer.filter(*cloud_filtered);
 
     std::cerr
-        << "[After downsampling] PC volume and size: "
-        << cloud->width * cloud->height << " "
-        << cloud->size()
+        << "[After downsampling] PC size: "
+        << cloud_filtered->size()
         << " (" << pcl::getFieldsList(*cloud) << ") "
         << std::endl;
     
@@ -135,7 +134,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     cb.setMax(Eigen::Vector4f ( 30, 7, 5, 1));
     cb.filter(*cloud_filtered);
 
-    renderer.RenderPointCloud(cloud_filtered, "filteredCloud"); 
+    renderer.RenderPointCloud(cloud, "filteredCloud"); 
 
     // TODO: 3) Segmentation and apply RANSAC
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ>());
@@ -207,6 +206,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
 int main(int argc, char* argv[])
 {
     auto dataset_folder = argv[1];
+    std::string params_filename = argv[2];
     Renderer renderer;
 
     renderer.InitCamera(CameraAngle::XY);
@@ -219,6 +219,10 @@ int main(int argc, char* argv[])
         boost::filesystem::directory_iterator{dataset_folder},
         boost::filesystem::directory_iterator{}
     );
+
+    auto &parameters = params::Params::getInstance();
+    parameters.loadFromJson(params_filename);
+
 
     // sort files in ascending (chronological) order
     std::sort(stream.begin(), stream.end());

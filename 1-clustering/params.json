@@ -1,0 +1,8 @@
+{
+    "downsampling_leaf_size": [0.1, 0.1, 0.1],
+    
+    "cropping": {
+        "min": [-20, -6, -2],
+        "max": [30, 7, 5]
+    }
+}

@@ -4,7 +4,7 @@
 // His code has been slightly modified to make it more structured.
 //
 
-#include "../include/Renderer.hpp"
+#include <Renderer.hpp>
 
 
 namespace lidar_obstacle_detection
