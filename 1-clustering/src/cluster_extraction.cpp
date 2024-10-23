@@ -196,65 +196,59 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     ego_box.filter(*cloud_filtered);
     
 
-    // TODO: 6) Create the KDTree and the vector of PointIndices
-    
-
-
-    // TODO: 7) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
-    std::vector<pcl::PointIndices> cluster_indices;
-
-    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
-    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
-
+    // 6) Create the KDTree and run euclidean clustering
     #ifdef USE_PCL_LIBRARY
+    pcl::search::KdTree<pxyz>::Ptr kdtree(new pcl::search::KdTree<pxyz>());
+    kdtree->setInputCloud(cloud_filtered);
 
-        //PCL functions
-        //HERE 6)
+    pcl::EuclideanClusterExtraction<pxyz> clustering_extractor;
+    clustering_extractor.setClusterTolerance(parameters.cluster_tolerance);
+    clustering_extractor.setMinClusterSize(parameters.cluster_min_threshold);
+    clustering_extractor.setMaxClusterSize(parameters.cluster_max_threshold);
+    clustering_extractor.setSearchMethod(kdtree);
+    clustering_extractor.setInputCloud(cloud_filtered);
+
+    std::vector<pcl::PointIndices> clusters_idxs;
+    clustering_extractor.extract(clusters_idxs);
+
     #else
         // Optional assignment
         my_pcl::KdTree treeM;
         treeM.set_dimension(3);
         setupKdtree(cloud_filtered, &treeM, 3);
-        cluster_indices = euclideanCluster(cloud_filtered, &treeM, clusterTolerance, setMinClusterSize, setMaxClusterSize);
+        clusters_idxs = euclideanCluster(cloud_filtered, &treeM, clusterTolerance, setMinClusterSize, setMaxClusterSize);
     #endif
 
-    std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1), Color(1,0,1), Color(0,1,1)};
+    // 7) Render the scene. See above for ground plane and ego vehicle.
+    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
+    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
 
-
-    /**Now we extracted the clusters out of our point cloud and saved the indices in cluster_indices. 
-
-    To separate each cluster out of the vector<PointIndices> we have to iterate through cluster_indices, create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
-    Compute euclidean distance
+    /**
+    To separate each cluster out of the vector<PointIndices> we have to iterate through clusters_idxs,
+    create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
+    Compute euclidean distance wrt the ego vehicle.
     **/
-    int j = 0;
-    int clusterId = 0;
-    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
-    {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
-        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); ++pit)
-        cloud_cluster->push_back ((*cloud_filtered)[*pit]); 
+    unsigned box_id = 0;
+    for (const auto &cluster_idxs : clusters_idxs) {
+        pcl::PointCloud<pxyz>::Ptr cloud_cluster(new pcl::PointCloud<pxyz>());
+
+        for (const auto &idx : cluster_idxs.indices) {
+            cloud_cluster->push_back ((*cloud_filtered)[idx]); 
+        }
+
         cloud_cluster->width = cloud_cluster->size ();
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
-        renderer.RenderPointCloud(cloud,"originalCloud"+std::to_string(clusterId),colors[2]);
-        // TODO: 7) render the cluster and plane without rendering the original cloud 
-        //<-- here
-        //----------
-
         //Here we create the bounding box on the detected clusters
         pcl::PointXYZ minPt, maxPt;
         pcl::getMinMax3D(*cloud_cluster, minPt, maxPt);
+        Box box{minPt.x, minPt.y, minPt.z, maxPt.x, maxPt.y, maxPt.z};
+        renderer.RenderBox(box, box_id++);
 
         //TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
-        Box box{minPt.x, minPt.y, minPt.z,
-        maxPt.x, maxPt.y, maxPt.z};
         //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
         //please take a look at the function RenderBox to see how to color the box
-        renderer.RenderBox(box, j);
-
-        ++clusterId;
-        j++;
     }  
 
 }

@@ -14,7 +14,10 @@ namespace params {
                 ego_box_min, ego_box_max;
                 
             bool render_raw_pc, render_filtered_pc, render_ground, render_ego;
-            float ransac_max_iterations, inlier_admission_threshold;
+            
+            float
+                ransac_max_iterations, inlier_admission_threshold,
+                cluster_tolerance, cluster_min_threshold, cluster_max_threshold;
 
             static Params& getInstance() {
                 static Params instance;
@@ -54,6 +57,9 @@ namespace params {
                 
                 ransac_max_iterations = tree.get<float>("segmentation.ransac_max_iterations");
                 inlier_admission_threshold = tree.get<float>("segmentation.inlier_admission_threshold");
+                cluster_tolerance = tree.get<float>("clustering.tolerance");
+                cluster_min_threshold = tree.get<float>("clustering.min_cluster_threshold");
+                cluster_max_threshold = tree.get<float>("clustering.max_cluster_threshold");
             }
 
         private:
