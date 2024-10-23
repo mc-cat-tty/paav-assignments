@@ -27,7 +27,7 @@
     
     "pointcloud_viewer": {
         "filtered": {
-            "render": true
+            "render": false
         },
         "raw": {
             "render": false

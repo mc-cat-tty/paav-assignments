@@ -27,7 +27,7 @@ namespace lidar_obstacle_detection
 
   void Renderer::addText(float centroid_x, float centroid_y, float centroid_z, const std::string& text, const std::string& id){
 
-    viewer_->addText3D (text, pcl::PointXYZ(centroid_x, centroid_y, centroid_z), 0.3, 255, 0, 128, id, 0);
+    viewer_->addText3D (text, pcl::PointXYZ(centroid_x, centroid_y, centroid_z), 0.3, 128, 0, 128, id, 0);
     
   }
 

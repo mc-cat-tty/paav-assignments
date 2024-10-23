@@ -236,7 +236,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
     Compute euclidean distance wrt the ego vehicle.
     **/
-    unsigned box_id = 0;
+    unsigned id = 0;
     for (const auto &cluster_idxs : clusters_idxs) {
         pcl::PointCloud<Pxyz>::Ptr cloud_cluster(new pcl::PointCloud<Pxyz>());
 
@@ -248,20 +248,25 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         cloud_cluster->height = 1;
         cloud_cluster->is_dense = true;
 
+        auto red = Color(1, 0, 0);
+        auto green = Color(0, 1, 0);
+        auto is_dangerous = utils::is_dangerous_obstacle(cloud_cluster);
+        Color vehicle_color = is_dangerous ? red : green;
+        renderer.RenderPointCloud(cloud_cluster, "Cluster" + std::to_string(id), vehicle_color);
+
         //Here we create the bounding box on the detected clusters
         pcl::PointXYZ minPt, maxPt;
         pcl::getMinMax3D(*cloud_cluster, minPt, maxPt);
         Box box{minPt.x, minPt.y, minPt.z, maxPt.x, maxPt.y, maxPt.z};
-        renderer.RenderBox(box, box_id);
+        renderer.RenderBox(box, id, vehicle_color);
 
         // 8) Here you can plot the distance of each cluster w.r.t ego vehicle
-        auto distance = utils::distance_from_origin(cloud_cluster);
+        auto distance = utils::distance_from_origin(*cloud_cluster);
         auto distance_label_stream = std::ostringstream();
         distance_label_stream << std::setprecision(3) << distance;
-        renderer.addText(minPt.x, (maxPt.y+minPt.y)/2, maxPt.z, distance_label_stream.str() + " m", "Text " + std::to_string(box_id));
+        renderer.addText(minPt.x, (maxPt.y+minPt.y)/2, maxPt.z, distance_label_stream.str() + " m", "Text " + std::to_string(id));
 
-        //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
-        ++box_id;
+        ++id;
     }
 
 }
