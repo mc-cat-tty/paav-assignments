@@ -176,16 +176,35 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     extract_filterer.setNegative(true);  // At this stage we want to remove the points' indexes of the groud plane
     extract_filterer.filter(*cloud_filtered);
 
-    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
-    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
+    // 5) Remove observer's artifacts from the scene
+    // It has been noticed that some points are still at the center of the scene.
+    // These points were part of the ego vehicle captured by the LiDAR.
+    // A purely geometric strategy has been chosen to clean them out.
+    pcl::PointCloud<pxyz>::Ptr ego_vehicle (new pcl::PointCloud<pxyz>());
+    pcl::CropBox<pxyz> ego_box(true);
+    ego_box.setInputCloud(cloud_filtered);
+    ego_box.setMin(parameters.ego_box_min);
+    ego_box.setMax(parameters.ego_box_max);
+    
+    if (parameters.render_ego) {
+        ego_box.setNegative(false);
+        ego_box.filter(*ego_vehicle);
+        renderer.addEgoCloud(ego_vehicle);
+    }
 
-    // 5) Remove 
+    ego_box.setNegative(true);
+    ego_box.filter(*cloud_filtered);
+    
 
     // TODO: 6) Create the KDTree and the vector of PointIndices
+    
 
 
     // TODO: 7) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
     std::vector<pcl::PointIndices> cluster_indices;
+
+    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
+    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
 
     #ifdef USE_PCL_LIBRARY
 

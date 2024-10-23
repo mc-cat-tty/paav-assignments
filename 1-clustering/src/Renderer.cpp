@@ -36,6 +36,10 @@ namespace lidar_obstacle_detection
     this->RenderPointCloud(ground, "Ground", Color(0, 0.5, 0));
   }
 
+  void Renderer::addEgoCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &ego) {
+    this->RenderPointCloud(ego, "Ego vehicle", Color(0, 0, 0.5));
+  }
+
 
   void Renderer::removeShape(int id){
     viewer_->removeShape("c_"+std::to_string(id),0);

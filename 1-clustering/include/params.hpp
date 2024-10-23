@@ -8,8 +8,12 @@
 namespace params {
     class Params {
         public:
-            Eigen::Vector4f voxel_leaf_size, crop_box_min, crop_box_max;
-            bool render_raw_pc, render_filtered_pc, render_ground;
+            Eigen::Vector4f
+                voxel_leaf_size,
+                crop_box_min, crop_box_max,
+                ego_box_min, ego_box_max;
+                
+            bool render_raw_pc, render_filtered_pc, render_ground, render_ego;
             float ransac_max_iterations, inlier_admission_threshold;
 
             static Params& getInstance() {
@@ -40,9 +44,14 @@ namespace params {
                 voxel_leaf_size = extract_3d_vector("downsampling.voxel_leaf_size");
                 crop_box_min = extract_3d_vector("cropping.min"); 
                 crop_box_max = extract_3d_vector("cropping.max");
+                ego_box_min = extract_3d_vector("ego_boundaries.min");
+                ego_box_max = extract_3d_vector("ego_boundaries.max");
+
                 render_raw_pc = tree.get<bool>("pointcloud_viewer.raw.render");
                 render_filtered_pc = tree.get<bool>("pointcloud_viewer.filtered.render");
                 render_ground = tree.get<bool>("pointcloud_viewer.ground_plane.render");
+                render_ego = tree.get<bool>("pointcloud_viewer.ego.render");
+                
                 ransac_max_iterations = tree.get<float>("segmentation.ransac_max_iterations");
                 inlier_admission_threshold = tree.get<float>("segmentation.inlier_admission_threshold");
             }

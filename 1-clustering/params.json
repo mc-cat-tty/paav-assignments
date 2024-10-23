@@ -8,6 +8,11 @@
         "max": [30, 7, 5]
     },
 
+    "ego_boundaries": {
+        "min": [-5, -1.5, -5],
+        "max": [5, 1.5, 5]
+    },
+
     "segmentation": {
         "ransac_max_iterations": 100,
         "inlier_admission_threshold": 0.3
@@ -21,6 +26,9 @@
             "render": false
         },
         "ground_plane": {
+            "render": false
+        },
+        "ego": {
             "render": false
         }
     }

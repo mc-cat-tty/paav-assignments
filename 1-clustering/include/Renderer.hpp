@@ -62,6 +62,8 @@ namespace lidar_obstacle_detection
 
     void addGroundCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &ground);
     
+    void addEgoCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &ego);
+    
     void ClearRays();
 
     void ClearViewer();
