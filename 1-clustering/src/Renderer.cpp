@@ -243,6 +243,6 @@ namespace lidar_obstacle_detection
 
   void Renderer::SpinViewerOnce() const
   {
-    viewer_->spin();
+    viewer_->spinOnce();
   }
 }

@@ -107,18 +107,38 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 }
 
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
-    // TODO: 1) Downsample the dataset 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ> ());
+    // 1) Downsample the dataset
+    std::cerr
+        << "[Before downsampling] PC volume and size: "
+        << cloud->width * cloud->height << " "
+        << cloud->size()
+        << " (" << pcl::getFieldsList(*cloud) << ") "
+        << std::endl;
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::VoxelGrid<pcl::PointXYZ> voxel_filterer;
+    voxel_filterer.setInputCloud(cloud);
+    voxel_filterer.setLeafSize(0.1f, 0.1f, 0.1f);
+    voxel_filterer.filter(*cloud_filtered);
+
+    std::cerr
+        << "[After downsampling] PC volume and size: "
+        << cloud->width * cloud->height << " "
+        << cloud->size()
+        << " (" << pcl::getFieldsList(*cloud) << ") "
+        << std::endl;
+    
     // 2) here we crop the points that are far away from us, in which we are not interested
     pcl::CropBox<pcl::PointXYZ> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(Eigen::Vector4f (-20, -6, -2, 1));
     cb.setMax(Eigen::Vector4f ( 30, 7, 5, 1));
-    cb.filter(*cloud_filtered); 
+    cb.filter(*cloud_filtered);
+
+    renderer.RenderPointCloud(cloud_filtered, "filteredCloud"); 
 
     // TODO: 3) Segmentation and apply RANSAC
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ>());
 
 
     // TODO: 4) iterate over the filtered cloud, segment and remove the planar inliers 
@@ -210,7 +230,7 @@ int main(int argc, char* argv[])
         renderer.ClearViewer();
 
         pcl::PCDReader reader;
-        reader.read (streamIterator->string(), *input_cloud);
+        reader.read(streamIterator->string(), *input_cloud);
 
         auto startTime = std::chrono::steady_clock::now();
         ProcessAndRenderPointCloud(renderer,input_cloud);
