@@ -10,14 +10,18 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/filters/crop_box.h>
-#include <Renderer.hpp>
 #include <pcl/point_types.h>
 #include <pcl/common/common.h>
+#include <boost/filesystem.hpp>
+
+#include <Renderer.hpp>
+#include <params.hpp>
+#include <utils.hpp>
+#include <tree_utilities.hpp>
+
 #include <chrono>
 #include <unordered_set>
-#include <tree_utilities.hpp>
-#include <boost/filesystem.hpp>
-#include <params.hpp>
+#include <sstream>
 
 #define USE_PCL_LIBRARY
 using namespace lidar_obstacle_detection;
@@ -108,7 +112,7 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 }
 
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
-    using pxyz = pcl::PointXYZ;
+    using Pxyz = pcl::PointXYZ;
     auto &parameters = params::Params::getInstance();
     
     // 1) Downsample the dataset
@@ -118,8 +122,8 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         << " (" << pcl::getFieldsList(*cloud) << ") "
         << std::endl;
 
-    pcl::PointCloud<pxyz>::Ptr cloud_filtered(new pcl::PointCloud<pxyz>());
-    pcl::VoxelGrid<pxyz> voxel_filterer;
+    pcl::PointCloud<Pxyz>::Ptr cloud_filtered(new pcl::PointCloud<Pxyz>());
+    pcl::VoxelGrid<Pxyz> voxel_filterer;
     voxel_filterer.setInputCloud(cloud);
     voxel_filterer.setLeafSize(parameters.voxel_leaf_size);
     voxel_filterer.filter(*cloud_filtered);
@@ -131,14 +135,14 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         << std::endl;
     
     // 2) Crop the points that are far away from us, in which we are not interested
-    pcl::CropBox<pxyz> cb(true);
+    pcl::CropBox<Pxyz> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(parameters.crop_box_min);
     cb.setMax(parameters.crop_box_max);
     cb.filter(*cloud_filtered);
 
     // 3) Apply RANSAC to segment ground plane    
-    pcl::SACSegmentation<pxyz> segmentation;
+    pcl::SACSegmentation<Pxyz> segmentation;
     segmentation.setOptimizeCoefficients(true);
     segmentation.setModelType(pcl::SACMODEL_PLANE);
     segmentation.setMethodType(pcl::SAC_RANSAC);
@@ -159,8 +163,8 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         << std:: endl;
 
     // 4) Remove the planar inliers
-    pcl::PointCloud<pxyz>::Ptr ground_plane (new pcl::PointCloud<pxyz>());
-    pcl::ExtractIndices<pxyz> extract_filterer;
+    pcl::PointCloud<Pxyz>::Ptr ground_plane (new pcl::PointCloud<Pxyz>());
+    pcl::ExtractIndices<Pxyz> extract_filterer;
     extract_filterer.setInputCloud(cloud_filtered);
     extract_filterer.setIndices(inliers_idx);
 
@@ -180,8 +184,8 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     // It has been noticed that some points are still at the center of the scene.
     // These points were part of the ego vehicle captured by the LiDAR.
     // A purely geometric strategy has been chosen to clean them out.
-    pcl::PointCloud<pxyz>::Ptr ego_vehicle (new pcl::PointCloud<pxyz>());
-    pcl::CropBox<pxyz> ego_box(true);
+    pcl::PointCloud<Pxyz>::Ptr ego_vehicle (new pcl::PointCloud<Pxyz>());
+    pcl::CropBox<Pxyz> ego_box(true);
     ego_box.setInputCloud(cloud_filtered);
     ego_box.setMin(parameters.ego_box_min);
     ego_box.setMax(parameters.ego_box_max);
@@ -198,10 +202,10 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
 
     // 6) Create the KDTree and run euclidean clustering
     #ifdef USE_PCL_LIBRARY
-    pcl::search::KdTree<pxyz>::Ptr kdtree(new pcl::search::KdTree<pxyz>());
+    pcl::search::KdTree<Pxyz>::Ptr kdtree(new pcl::search::KdTree<Pxyz>());
     kdtree->setInputCloud(cloud_filtered);
 
-    pcl::EuclideanClusterExtraction<pxyz> clustering_extractor;
+    pcl::EuclideanClusterExtraction<Pxyz> clustering_extractor;
     clustering_extractor.setClusterTolerance(parameters.cluster_tolerance);
     clustering_extractor.setMinClusterSize(parameters.cluster_min_threshold);
     clustering_extractor.setMaxClusterSize(parameters.cluster_max_threshold);
@@ -223,6 +227,10 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
     if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
 
+    if (clusters_idxs.empty()) {
+        std::cerr << "No cluster found in the scene, maybe some params tuning is necessary" << std::endl;
+    }
+
     /**
     To separate each cluster out of the vector<PointIndices> we have to iterate through clusters_idxs,
     create a new PointCloud for each entry and write all points of the current cluster in the PointCloud.
@@ -230,7 +238,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     **/
     unsigned box_id = 0;
     for (const auto &cluster_idxs : clusters_idxs) {
-        pcl::PointCloud<pxyz>::Ptr cloud_cluster(new pcl::PointCloud<pxyz>());
+        pcl::PointCloud<Pxyz>::Ptr cloud_cluster(new pcl::PointCloud<Pxyz>());
 
         for (const auto &idx : cluster_idxs.indices) {
             cloud_cluster->push_back ((*cloud_filtered)[idx]); 
@@ -244,12 +252,17 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         pcl::PointXYZ minPt, maxPt;
         pcl::getMinMax3D(*cloud_cluster, minPt, maxPt);
         Box box{minPt.x, minPt.y, minPt.z, maxPt.x, maxPt.y, maxPt.z};
-        renderer.RenderBox(box, box_id++);
+        renderer.RenderBox(box, box_id);
 
-        //TODO: 8) Here you can plot the distance of each cluster w.r.t ego vehicle
+        // 8) Here you can plot the distance of each cluster w.r.t ego vehicle
+        auto distance = utils::distance_from_origin(cloud_cluster);
+        auto distance_label_stream = std::ostringstream();
+        distance_label_stream << std::setprecision(3) << distance;
+        renderer.addText(minPt.x, (maxPt.y+minPt.y)/2, maxPt.z, distance_label_stream.str() + " m", "Text " + std::to_string(box_id));
+
         //TODO: 9) Here you can color the vehicles that are both in front and 5 meters away from the ego vehicle
-        //please take a look at the function RenderBox to see how to color the box
-    }  
+        ++box_id;
+    }
 
 }
 

@@ -25,9 +25,9 @@ namespace lidar_obstacle_detection
     viewer_->setShapeRenderingProperties(pcl::visualization::PCL_VISUALIZER_OPACITY, 10000.0, "c_"+std::to_string(id));
   }
 
-  void Renderer::addText(float centroid_x, float centroid_y, float centroid_z,const std::string&  id){
+  void Renderer::addText(float centroid_x, float centroid_y, float centroid_z, const std::string& text, const std::string& id){
 
-    viewer_->addText3D (id, pcl::PointXYZ(centroid_x, centroid_y, 0),0.5, 255, 0, 0, "", 0);
+    viewer_->addText3D (text, pcl::PointXYZ(centroid_x, centroid_y, centroid_z), 0.3, 255, 0, 128, id, 0);
     
   }
 
