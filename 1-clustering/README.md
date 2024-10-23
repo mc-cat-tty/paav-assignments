@@ -1,3 +1,6 @@
+# Assignment 1 - Clustering
+
+## Instructions
 Academic Year: 2024/2025
 
 * Assignment #1 Euclidean clustering object detection:
@@ -34,3 +37,18 @@ You have to change the following line of code:
 
 into the path that contains your dataset 
 or modify the code to accept a command line dataset
+
+## Usage
+`driver.bash` will provide the means to interact with the underling executable.
+
+Common operations are:
+ - `./driver.bash build` to build the artifacts declared by CMakeLists.txt
+ - `./driver.bash tune dataset_1` to tune the parameters listed in params.json
+ - `./driver.bash exec dataset_1` for a single execution of the program against the specified dataset
+
+Ask for help with the `-h` option: `./driver.bash -h`
+
+
+## Desclaimers
+ - Support for C++20 standard is needed by the compiler
+ - It looks like Ubuntu 22.04.4 LTS + PCL v1.12 is not working properly. A segmentation fault occurs when the PCLVisualizer::spinOnce function is called.
