@@ -43,7 +43,7 @@ or modify the code to accept a command line dataset
 
 Common operations are:
  - `./driver.bash build` to build the artifacts declared by CMakeLists.txt
- - `./driver.bash tune dataset_1` to tune the parameters listed in params.json
+ - `./driver.bash tune dataset_1` to tune by hand the parameters listed in params.json
  - `./driver.bash exec dataset_1` for a single execution of the program against the specified dataset
 
 Ask for help with the `-h` option: `./driver.bash -h`
