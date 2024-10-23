@@ -1,9 +1,16 @@
 {
-    "downsampling_leaf_size": [0.5, 0.5, 0.5],
+    "downsampling": {
+        "voxel_leaf_size": [0.4, 0.4, 0.4]
+    },
     
     "cropping": {
-        "min": [-20, -6, -2],
-        "max": [30, 7, 5]
+        "min": [-20, -7, -2],
+        "max": [30, 8, 5]
+    },
+
+    "segmentation": {
+        "ransac_max_iterations": 100,
+        "inlier_admission_threshold": 0.02
     },
 
     "pointcloud_viewer": {

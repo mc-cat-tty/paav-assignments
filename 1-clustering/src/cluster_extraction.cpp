@@ -108,29 +108,30 @@ std::vector<pcl::PointIndices> euclideanCluster(typename pcl::PointCloud<pcl::Po
 }
 
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
+    using pxyz = pcl::PointXYZ;
     auto &parameters = params::Params::getInstance();
     
     // 1) Downsample the dataset
     std::cerr
-        << "[Before downsampling] PC size: "
+        << "[DOWNSAMPLING] Before downsampling - PC size: "
         << cloud->size()
         << " (" << pcl::getFieldsList(*cloud) << ") "
         << std::endl;
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl::VoxelGrid<pcl::PointXYZ> voxel_filterer;
+    pcl::PointCloud<pxyz>::Ptr cloud_filtered(new pcl::PointCloud<pxyz>());
+    pcl::VoxelGrid<pxyz> voxel_filterer;
     voxel_filterer.setInputCloud(cloud);
     voxel_filterer.setLeafSize(parameters.voxel_leaf_size);
     voxel_filterer.filter(*cloud_filtered);
 
     std::cerr
-        << "[After downsampling] PC size: "
+        << "[DOWNSAMPLING] After downsampling - PC size: "
         << cloud_filtered->size()
         << " (" << pcl::getFieldsList(*cloud) << ") "
         << std::endl;
     
-    // 2) here we crop the points that are far away from us, in which we are not interested
-    pcl::CropBox<pcl::PointXYZ> cb(true);
+    // 2) Crop the points that are far away from us, in which we are not interested
+    pcl::CropBox<pxyz> cb(true);
     cb.setInputCloud(cloud_filtered);
     cb.setMin(parameters.crop_box_min);
     cb.setMax(parameters.crop_box_max);
@@ -140,12 +141,30 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
 
 
-    // TODO: 3) Segmentation and apply RANSAC
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_plane (new pcl::PointCloud<pcl::PointXYZ>());
+    // 3) Apply RANSAC to segment ground plane
+    pcl::PointCloud<pxyz>::Ptr ground_plane (new pcl::PointCloud<pxyz>());
+    
+    pcl::SACSegmentation<pxyz> segmentation;
+    segmentation.setOptimizeCoefficients(true);
+    segmentation.setModelType(pcl::SACMODEL_PLANE);
+    segmentation.setMethodType(pcl::SAC_RANSAC);
+    segmentation.setMaxIterations(parameters.ransac_max_iterations);
+    segmentation.setDistanceThreshold(parameters.inlier_admission_threshold);
+    segmentation.setInputCloud(cloud_filtered);
+    
+    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
 
+    auto startTime = std::chrono::steady_clock::now();
+    segmentation.segment(*inliers, *coefficients);
+    auto endTime = std::chrono::steady_clock::now();
+    auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+    std::cout
+        << "[SEGMENTATION] Ransac execution time [us]: "
+        << elapsedTime.count()
+        << std:: endl;
 
-    // TODO: 4) iterate over the filtered cloud, segment and remove the planar inliers 
-
+    // 4) Remove the planar inliers
 
     // TODO: 5) Create the KDTree and the vector of PointIndices
 

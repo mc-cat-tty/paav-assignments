@@ -10,6 +10,7 @@ namespace params {
         public:
             Eigen::Vector4f voxel_leaf_size, crop_box_min, crop_box_max;
             bool render_raw_pc, render_filtered_pc;
+            float ransac_max_iterations, inlier_admission_threshold;
 
             static Params& getInstance() {
                 static Params instance;
@@ -36,11 +37,13 @@ namespace params {
                 };
 
                 
-                voxel_leaf_size = extract_3d_vector("downsampling_leaf_size");
+                voxel_leaf_size = extract_3d_vector("downsampling.voxel_leaf_size");
                 crop_box_min = extract_3d_vector("cropping.min"); 
                 crop_box_max = extract_3d_vector("cropping.max");
                 render_raw_pc = tree.get<bool>("pointcloud_viewer.raw.render");
                 render_filtered_pc = tree.get<bool>("pointcloud_viewer.filtered.render");
+                ransac_max_iterations = tree.get<float>("segmentation.ransac_max_iterations");
+                inlier_admission_threshold = tree.get<float>("segmentation.inlier_admission_threshold");
             }
 
         private:
