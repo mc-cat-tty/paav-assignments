@@ -1,6 +1,6 @@
 {
     "downsampling": {
-        "voxel_leaf_size": [0.4, 0.4, 0.4]
+        "voxel_leaf_size": [0.30, 0.30, 0.30]
     },
     
     "cropping": {
@@ -20,9 +20,9 @@
 
 
     "clustering": {
-        "tolerance": 0.5,
+        "tolerance": 0.4,
         "min_cluster_threshold": 15,
-        "max_cluster_threshold": 20000
+        "max_cluster_threshold": 30000
     },
     
     "pointcloud_viewer": {
@@ -38,5 +38,9 @@
         "ego": {
             "render": false
         }
+    },
+
+    "flow": {
+        "use_custom_clustering": true
     }
 }

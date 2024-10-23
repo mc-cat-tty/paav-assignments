@@ -13,7 +13,7 @@ namespace params {
                 crop_box_min, crop_box_max,
                 ego_box_min, ego_box_max;
                 
-            bool render_raw_pc, render_filtered_pc, render_ground, render_ego;
+            bool render_raw_pc, render_filtered_pc, render_ground, render_ego, use_custom_clustering;
             
             float
                 ransac_max_iterations, inlier_admission_threshold,
@@ -54,6 +54,7 @@ namespace params {
                 render_filtered_pc = tree.get<bool>("pointcloud_viewer.filtered.render");
                 render_ground = tree.get<bool>("pointcloud_viewer.ground_plane.render");
                 render_ego = tree.get<bool>("pointcloud_viewer.ego.render");
+                use_custom_clustering = tree.get<bool>("flow.use_custom_clustering");
                 
                 ransac_max_iterations = tree.get<float>("segmentation.ransac_max_iterations");
                 inlier_admission_threshold = tree.get<float>("segmentation.inlier_admission_threshold");
