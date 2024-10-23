@@ -137,13 +137,7 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     cb.setMax(parameters.crop_box_max);
     cb.filter(*cloud_filtered);
 
-    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
-    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
-
-
-    // 3) Apply RANSAC to segment ground plane
-    pcl::PointCloud<pxyz>::Ptr ground_plane (new pcl::PointCloud<pxyz>());
-    
+    // 3) Apply RANSAC to segment ground plane    
     pcl::SACSegmentation<pxyz> segmentation;
     segmentation.setOptimizeCoefficients(true);
     segmentation.setModelType(pcl::SACMODEL_PLANE);
@@ -152,11 +146,11 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
     segmentation.setDistanceThreshold(parameters.inlier_admission_threshold);
     segmentation.setInputCloud(cloud_filtered);
     
-    pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+    pcl::PointIndices::Ptr inliers_idx(new pcl::PointIndices());
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
 
     auto startTime = std::chrono::steady_clock::now();
-    segmentation.segment(*inliers, *coefficients);
+    segmentation.segment(*inliers_idx, *coefficients);
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
     std::cout
@@ -165,11 +159,32 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         << std:: endl;
 
     // 4) Remove the planar inliers
+    pcl::PointCloud<pxyz>::Ptr ground_plane (new pcl::PointCloud<pxyz>());
+    pcl::ExtractIndices<pxyz> extract_filterer;
+    extract_filterer.setInputCloud(cloud_filtered);
+    extract_filterer.setIndices(inliers_idx);
 
-    // TODO: 5) Create the KDTree and the vector of PointIndices
+    // It could be useful to display which is the removed set of points,
+    // however, in the vast majority of cases, it's an unwanted additional overhead.
+    // So its rendering has been parametrized; in that way the choice is up to the user.
+    if (parameters.render_ground) {
+        extract_filterer.setNegative(false);
+        extract_filterer.filter(*ground_plane);
+        renderer.addGroundCloud(ground_plane);
+    }
+        
+    extract_filterer.setNegative(true);  // At this stage we want to remove the points' indexes of the groud plane
+    extract_filterer.filter(*cloud_filtered);
+
+    if (parameters.render_raw_pc) renderer.RenderPointCloud(cloud, "originalCloud");
+    if (parameters.render_filtered_pc) renderer.RenderPointCloud(cloud_filtered, "filteredCloud");
+
+    // 5) Remove 
+
+    // TODO: 6) Create the KDTree and the vector of PointIndices
 
 
-    // TODO: 6) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
+    // TODO: 7) Set the spatial tolerance for new cluster candidates (pay attention to the tolerance!!!)
     std::vector<pcl::PointIndices> cluster_indices;
 
     #ifdef USE_PCL_LIBRARY

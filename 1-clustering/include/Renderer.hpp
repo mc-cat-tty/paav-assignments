@@ -59,6 +59,8 @@ namespace lidar_obstacle_detection
     void RenderRays(const Eigen::Vector3f& origin, const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
     
     void addCircle(float centroid_x, float centroid_y, int id);
+
+    void addGroundCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &ground);
     
     void ClearRays();
 

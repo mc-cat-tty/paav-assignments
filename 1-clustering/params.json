@@ -4,13 +4,13 @@
     },
     
     "cropping": {
-        "min": [-20, -7, -2],
-        "max": [30, 8, 5]
+        "min": [-20, -6, -2],
+        "max": [30, 7, 5]
     },
 
     "segmentation": {
         "ransac_max_iterations": 100,
-        "inlier_admission_threshold": 0.02
+        "inlier_admission_threshold": 0.3
     },
 
     "pointcloud_viewer": {
@@ -18,6 +18,9 @@
             "render": true
         },
         "raw": {
+            "render": false
+        },
+        "ground_plane": {
             "render": false
         }
     }

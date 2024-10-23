@@ -31,6 +31,11 @@ namespace lidar_obstacle_detection
     
   }
 
+  
+  void Renderer::addGroundCloud(const pcl::PointCloud<pcl::PointXYZ>::Ptr &ground) {
+    this->RenderPointCloud(ground, "Ground", Color(0, 0.5, 0));
+  }
+
 
   void Renderer::removeShape(int id){
     viewer_->removeShape("c_"+std::to_string(id),0);
