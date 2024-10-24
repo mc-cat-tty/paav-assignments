@@ -17,7 +17,8 @@ namespace params {
             
             float
                 ransac_max_iterations, inlier_admission_threshold,
-                cluster_tolerance, cluster_min_threshold, cluster_max_threshold;
+                cluster_tolerance, cluster_min_threshold, cluster_max_threshold,
+                building_diag_threshold_min, trees_form_factor_max;
 
             static Params& getInstance() {
                 static Params instance;
@@ -61,6 +62,8 @@ namespace params {
                 cluster_tolerance = tree.get<float>("clustering.tolerance");
                 cluster_min_threshold = tree.get<float>("clustering.min_cluster_threshold");
                 cluster_max_threshold = tree.get<float>("clustering.max_cluster_threshold");
+                building_diag_threshold_min = tree.get<float>("cleanup.buildings.min_diagonal_threshold");
+                trees_form_factor_max = tree.get<float>("cleanup.trees.max_form_factor");
             }
 
         private:

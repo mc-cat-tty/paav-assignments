@@ -8,6 +8,7 @@
 #include <iterator>
 #include <ranges>
 #include <limits>
+#include <algorithm>
 
 namespace utils {
     using Pxyz = pcl::PointXYZ;
@@ -27,10 +28,12 @@ namespace utils {
         }
 
         return dist_processed ? min_dist : -1;
-        // Negative distance logically mark that no distance has been processed
+        // Negative distance logically marks that cluster is empty
     }
 
     float front_distace_from_origin(PcPtr cluster) {
+        // Assumption: ego vehicle is the origin of the reference frame.
+        // Like in this case.
         auto in_front = [](Pxyz p) { return p.x > 0; };
         return distance_from_origin(*cluster | std::views::filter(in_front));
     }
@@ -41,5 +44,25 @@ namespace utils {
         bool unsafe_distance = distance_from_origin(*cluster) < distance_threshold;
         bool unsafe_position = front_distace_from_origin(cluster) > 0;
         return unsafe_distance && unsafe_position;
+    }
+
+    /**
+    @brief Returns if the bounding box is a potential building
+    */
+    bool is_building(const Pxyz &min_p, const Pxyz &max_p) {
+        const auto &parameters = params::Params::getInstance();
+        auto dist = pcl::euclideanDistance(min_p, max_p);
+        return dist > parameters.building_diag_threshold_min;
+    }
+
+    /**
+    @brief Returns if the bounding box is a potential tree
+    */
+    bool is_tree(const Pxyz &min_p, const Pxyz &max_p) {
+        const auto &parameters = params::Params::getInstance();
+        auto size = max_p.getVector3fMap() - min_p.getVector3fMap();
+        auto form_factor = size[2]/std::max(size[0], size[1]);  // size.z/std::max(size.x, size.y);
+        // std::cerr << "[FORM_FACTOR]" << form_factor << std::endl;
+        return form_factor > parameters.trees_form_factor_max;
     }
 }

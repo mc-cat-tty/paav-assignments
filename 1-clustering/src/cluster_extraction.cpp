@@ -120,7 +120,7 @@ std::vector<pcl::PointIndices> euclideanCluster(const pcl::PointCloud<pcl::Point
 
 void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
     using Pxyz = pcl::PointXYZ;
-    auto &parameters = params::Params::getInstance();
+    const auto &parameters = params::Params::getInstance();
     
     // 1) Downsample the dataset
     std::cerr
@@ -259,12 +259,16 @@ void ProcessAndRenderPointCloud (Renderer& renderer, pcl::PointCloud<pcl::PointX
         auto green = Color(0, 1, 0);
         auto is_dangerous = utils::is_dangerous_obstacle(cloud_cluster);
         Color vehicle_color = is_dangerous ? red : green;
-        renderer.RenderPointCloud(cloud_cluster, "Cluster" + std::to_string(id), vehicle_color);
 
         //Here we create the bounding box on the detected clusters
         pcl::PointXYZ minPt, maxPt;
         pcl::getMinMax3D(*cloud_cluster, minPt, maxPt);
         Box box{minPt.x, minPt.y, minPt.z, maxPt.x, maxPt.y, maxPt.z};
+
+        const bool discard = utils::is_building(minPt, maxPt) or utils::is_tree(minPt, maxPt);
+        if (discard) continue;
+        
+        renderer.RenderPointCloud(cloud_cluster, "Cluster" + std::to_string(id), vehicle_color);
         renderer.RenderBox(box, id, vehicle_color);
 
         // 8) Here you can plot the distance of each cluster w.r.t ego vehicle

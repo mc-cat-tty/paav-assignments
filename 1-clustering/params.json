@@ -18,11 +18,19 @@
         "inlier_admission_threshold": 0.3
     },
 
-
     "clustering": {
         "tolerance": 0.4,
-        "min_cluster_threshold": 15,
-        "max_cluster_threshold": 30000
+        "min_cluster_threshold": 20,
+        "max_cluster_threshold": 50000
+    },
+
+    "cleanup": {
+        "buildings": {
+            "min_diagonal_threshold": 7
+        },
+        "trees": {
+            "max_form_factor": 1.1
+        }
     },
     
     "pointcloud_viewer": {
