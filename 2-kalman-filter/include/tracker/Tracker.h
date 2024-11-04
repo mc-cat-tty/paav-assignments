@@ -38,7 +38,7 @@ private:
   std::vector<std::pair<int, int>> associated_track_det_ids_;
 
   // thresholds
-  double distance_threshold_;
+  double distance_threshold_, distance_threshold_squared_;
   double covariance_threshold;
   int loss_threshold;
 };

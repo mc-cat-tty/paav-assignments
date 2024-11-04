@@ -1,4 +1,5 @@
 #include "tracker/Tracker.h"
+#include "logger.hpp"
 #include <eigen3/Eigen/Dense>
 
 
@@ -6,8 +7,8 @@ Tracker::Tracker()
 {
     cur_id_ = 0;
     
-    // TODO
-    distance_threshold_ = 0.5; // meters
+    distance_threshold_ = 5.0; // meters
+    distance_threshold_squared_ = distance_threshold_*distance_threshold_;
     covariance_threshold = 0.0; 
 
     // number of frames the track has not been seen
@@ -55,26 +56,35 @@ void Tracker::dataAssociation(std::vector<bool> &associated_detections, const st
 
     // This vector contains a pair of track and its corresponding subject
     associated_track_det_ids_.clear();
+    auto &logger = logger::Logger::getInstance();
 
     for (size_t i = 0; i < tracks_.size(); ++i)
     {
         int closest_point_id = -1;
         double min_dist = std::numeric_limits<double>::max();
         
-        Eigen::Vector2d tracklet_coords(tracks_[i].getX(), tracks_[i].getY());
+        auto tracklet_coords = Eigen::Vector2d(tracks_[i].getX(), tracks_[i].getY());
 
         for (size_t j = 0; j < associated_detections.size(); ++j) {
-            Eigen::Vector2d subject_coords(centroids_x[j], centroids_y[j]);
-            auto dist_squared = (subject_coords - tracklet_coords).squaredNorm();
+            auto subject_coords = Eigen::Vector2d(centroids_x[j], centroids_y[j]);
+            auto delta = subject_coords - tracklet_coords;
+            Eigen::Matrix2d covariance;
+            covariance <<
+                tracks_[i].getXCovariance(), 0,
+                0, tracks_[i].getYCovariance();
             
-            if (dist_squared < min_dist) {
-                min_dist = dist_squared;
+            auto dist_squared = delta.squaredNorm();
+            auto mahalanobis_squared = delta.transpose() * covariance.inverse() * delta;
+            logger.logDistance(i, j, dist_squared, mahalanobis_squared);
+            
+            if (mahalanobis_squared < min_dist) {
+                min_dist = mahalanobis_squared;
                 closest_point_id = j;
             }
         }
 
         // Associate the closest detection to a tracklet
-        if (min_dist < distance_threshold_ && !associated_detections[closest_point_id])
+        if (min_dist < distance_threshold_squared_ && !associated_detections[closest_point_id])
         {
             associated_track_det_ids_.push_back(std::make_pair(closest_point_id, i));
             associated_detections[closest_point_id] = true;
