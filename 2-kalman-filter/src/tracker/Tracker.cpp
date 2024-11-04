@@ -7,12 +7,12 @@ Tracker::Tracker()
     cur_id_ = 0;
     
     // TODO
-    distance_threshold_ = 2.0; // meters
+    distance_threshold_ = 0.5; // meters
     covariance_threshold = 0.0; 
 
     // number of frames the track has not been seen
     // Roughly loss_threshold/10 seconds withouth seeing the object have to pass to remove it
-    loss_threshold = 50; 
+    loss_threshold = 60;
 }
 
 Tracker::~Tracker() {}
