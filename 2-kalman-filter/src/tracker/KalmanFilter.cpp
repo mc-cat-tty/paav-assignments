@@ -47,7 +47,7 @@ void KalmanFilter::init(double dt)
   double dt_3 = dt_2 * dt_;
   double dt_4 = dt_3 * dt_;
 
-  // set the process covariance matrix Q
+  // set the process noise matrix Q
   Q_ = Eigen::MatrixXd(4, 4);
   Q_ << dt_4 / 4. * noise_ax_, 0., dt_3 / 2. * noise_ax_, 0.,
       0., dt_4 / 4. * noise_ay_, 0., dt_3 / 2. * noise_ay_,
@@ -58,14 +58,14 @@ void KalmanFilter::init(double dt)
 void KalmanFilter::predict()
 {
   x_ = F_ * x_;
-  P_ = F_ * P_ * F_.transpose();
+  P_ = F_ * P_ * F_.transpose() + Q_;
 }
 
 void KalmanFilter::update(const Eigen::VectorXd &z)
 {
   // Temporary matrices
   Eigen::VectorXd y = z - H_ * x_;
-  Eigen::MatrixXd S = H_ * P_ * H_.transpose();
+  Eigen::MatrixXd S = H_ * P_ * H_.transpose() + R_;
   Eigen::MatrixXd K = P_ * H_.transpose() * S.inverse();
 
   // New estimate
