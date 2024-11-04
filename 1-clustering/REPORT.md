@@ -12,10 +12,10 @@ Doing so, also some bicyclers and pedestrians might be excluded from the scene.
 This is clearly an unwanted byproduct since pedestrians could represent a danger for autonomous vehicles.
 
 Another condition is imposed on top of the previous one to remove buildings: bounding boxes' diagonal length.
-Diagonals higher than a certain threshold are filtered out: they can either be a huge clusters or malformed bounding
-boxes, like the sidewalk of scene 2.
+Diagonals longer than a certain threshold are filtered out: they can either be a huge clusters or malformed bounding
+boxes (BB), like the sidewalk's BB of scene 2.
 
 In conclusion, these strategies tend to overfit the problem, since a set of parameters suitable for scene 2 could not
-be valid for other, more complex, scenes. It would be definitely better to perform PC-base object detection, which although comes at 
+be valid for other, more complex, scenes. It would be definitely better to perform PC-based object detection, which although comes at 
 an higher computational cost compared to a purely geometric filtering. PointPillars NN provides the means to perform object
 detection on a point cloud.
