@@ -6,8 +6,8 @@
 class KalmanFilter
 {
 public:
-  KalmanFilter();
-  ~KalmanFilter();
+  KalmanFilter() = default;
+  ~KalmanFilter() = default;
 
   // init the filter
   void init(double dt);

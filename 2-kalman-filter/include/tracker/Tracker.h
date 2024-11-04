@@ -3,6 +3,7 @@
 
 #include <tracker/Tracklet.h>
 #include <limits>
+#include <unordered_map>
 
 struct Subject {
   Eigen::Vector2d coords;
@@ -12,11 +13,10 @@ struct Subject {
   inline double getY() const { return coords[1]; }
 };
 
-class Tracker
-{
+class Tracker {
 public:
   Tracker();
-  ~Tracker();
+  ~Tracker() = default;
 
   // handle tracklets
   void removeTracks();
@@ -31,7 +31,8 @@ public:
              bool lidarStatus);
 
   // getters
-  const std::vector<Tracklet> &getTracks() { return tracks_; }
+  const std::vector<Tracklet> &getTracks() const { return tracks_; }
+  inline const double getLongestPath(int &track_id) const;
 
 private:
   // tracklets
@@ -40,7 +41,7 @@ private:
 
   // association
   std::vector<std::pair<int, int>> associated_track_det_ids_;
-  std::vector<Subject> subjects;
+  std::vector<Subject> subjects, subjects_old;
 
   // thresholds
   double distance_threshold_, distance_threshold_squared_;

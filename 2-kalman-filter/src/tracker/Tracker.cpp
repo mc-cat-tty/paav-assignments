@@ -19,7 +19,6 @@ Tracker::Tracker()
     loss_threshold = 200;
 }
 
-Tracker::~Tracker() {}
 
 /*
     This function removes tracks based on any strategy
@@ -45,6 +44,11 @@ void Tracker::addTracks()
     }
 }
 
+const double getLongestPath(int &track_id) const {
+    for (const auto [track_idx, length] : )
+}
+
+
 /*
     This function associates detections (centroids_x,centroids_y) with the tracks (tracks_)
     Input:
@@ -53,8 +57,8 @@ void Tracker::addTracks()
 */
 void Tracker::dataAssociation()
 {
-
     // This vector contains a pair of track and its corresponding subject
+    auto prev_association_old = associated_track_det_ids_;
     associated_track_det_ids_.clear();
     static auto logger = logger::Logger("ASSOCIATION");
 
@@ -110,6 +114,7 @@ void Tracker::dataAssociation()
 void Tracker::track(const std::vector<double> &centroids_x,
                     const std::vector<double> &centroids_y,
                     bool lidarStatus) {
+    subjects_old.swap(subjects);
     subjects.clear();
     subjects.reserve(centroids_x.size());
 

@@ -10,7 +10,7 @@ class Tracklet
 {
 public:
   Tracklet(int idTrack, double x, double y);
-  ~Tracklet();
+  ~Tracklet() = default;
 
   void predict();
   void update(double x, double y, bool lidarStatus);
@@ -35,6 +35,8 @@ private:
 
   // number of loss since last update
   int loss_count_;
+
+  unsigned length;
 };
 
 #endif // TRACKLET_H_

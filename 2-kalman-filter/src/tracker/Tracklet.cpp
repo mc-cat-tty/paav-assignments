@@ -1,20 +1,13 @@
 #include <tracker/Tracklet.h>
 
 Tracklet::Tracklet(int idTrack, double x, double y)
-{
+: loss_count_(0), length(0),   id_(idTrack) {
   // set id
-  id_ = idTrack;
+  // set loss count to 0
 
   // initialize filter
   kf_.init(0.1);
   kf_.setState(x, y);
-
-  // set loss count to 0
-  loss_count_ = 0;
-}
-
-Tracklet::~Tracklet()
-{
 }
 
 // Predict a single measurement

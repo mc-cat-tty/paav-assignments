@@ -3,16 +3,7 @@
 #define LOGGING_ON true
 #include <logger.hpp>
 
-KalmanFilter::KalmanFilter()
-{
-}
-
-KalmanFilter::~KalmanFilter()
-{
-}
-
-void KalmanFilter::init(double dt)
-{
+void KalmanFilter::init(double dt) {
   dt_ = dt;
 
   // create a 4D state vector
