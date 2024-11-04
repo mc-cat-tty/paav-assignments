@@ -24,12 +24,7 @@ public:
   double getYCovariance() { return kf_.getYCovariance(); }
   int getId() { return id_; }
 
-  inline void increaseLoss() { loss_count_++; }
-  inline void zeroLoss() { loss_count_ = 0; }
   int getLossCount() { return loss_count_; }
-  
-  inline void setSubjectAssociated(bool a) { subject_associated = a; }
-  inline bool isSubjectAssociated() const { return subject_associated; }
 
 private:
   // filter
@@ -40,8 +35,6 @@ private:
 
   // number of loss since last update
   int loss_count_;
-
-  bool subject_associated;
 };
 
 #endif // TRACKLET_H_

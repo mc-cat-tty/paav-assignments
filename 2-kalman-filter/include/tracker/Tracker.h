@@ -2,7 +2,15 @@
 #define TRACKER_H_
 
 #include "tracker/Tracklet.h"
-#include <unordered_map>
+#include <limits>
+
+struct Subject {
+  Eigen::Vector2d coords;
+  bool associated;
+
+  inline double getX() const { return coords[0]; }
+  inline double getY() const { return coords[1]; }
+};
 
 class Tracker
 {
@@ -12,12 +20,10 @@ public:
 
   // handle tracklets
   void removeTracks();
-  void addTracks(const std::vector<double> &centroids_x,
-                 const std::vector<double> &centroids_y);
+  void addTracks();
 
   // associate tracklets and detections
-  void dataAssociation(const std::vector<double> &centroids_x,
-                       const std::vector<double> &centroids_y);
+  void dataAssociation();
 
   // track objects
   void track(const std::vector<double> &centroids_x,
@@ -33,8 +39,8 @@ private:
   int cur_id_;
 
   // association
-  std::unordered_map<int, int> subject_track_association;  ///< Key-val pairs organized as subject_idx-track_id
-  std::unordered_map<int, unsigned> unassociated_num;  ///< Key-val pairs organized as subject_id-unassociation_counter
+  std::vector<std::pair<int, int>> associated_track_det_ids_;
+  std::vector<Subject> subjects;
 
   // thresholds
   double distance_threshold_, distance_threshold_squared_;

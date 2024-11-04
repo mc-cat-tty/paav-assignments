@@ -21,6 +21,7 @@ Tracklet::~Tracklet()
 void Tracklet::predict()
 {
   kf_.predict();
+  loss_count_++;
 }
 
 // Update with a real measurement
@@ -33,5 +34,6 @@ void Tracklet::update(double x, double y, bool lidarStatus)
   {
     raw_measurements_ << x, y;
     kf_.update(raw_measurements_);
+    loss_count_ = 0;
   }
 }
