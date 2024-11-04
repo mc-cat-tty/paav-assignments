@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(tracker CXX)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -fPIC ")
+set(CMAKE_CXX_STANDARD 20)
+set(CXX_STANDARD_REQUIRED on)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #-------------------------------------------------------------------------------
 # External Libraries

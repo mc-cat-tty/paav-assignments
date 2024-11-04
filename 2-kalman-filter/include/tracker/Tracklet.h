@@ -18,10 +18,18 @@ public:
   // getters
   double getX() { return kf_.getX(); }
   double getY() { return kf_.getY(); }
+  Eigen::Vector2d getCoords() { return Eigen::Vector2d(getX(), getY()); }
+
   double getXCovariance() { return kf_.getXCovariance(); }
   double getYCovariance() { return kf_.getYCovariance(); }
-  int getLossCount() { return loss_count_; }
   int getId() { return id_; }
+
+  inline void increaseLoss() { loss_count_++; }
+  inline void zeroLoss() { loss_count_ = 0; }
+  int getLossCount() { return loss_count_; }
+  
+  inline void setSubjectAssociated(bool a) { subject_associated = a; }
+  inline bool isSubjectAssociated() const { return subject_associated; }
 
 private:
   // filter
@@ -32,6 +40,8 @@ private:
 
   // number of loss since last update
   int loss_count_;
+
+  bool subject_associated;
 };
 
 #endif // TRACKLET_H_
