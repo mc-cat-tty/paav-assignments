@@ -1,4 +1,6 @@
 #include "CloudManager.h"
+#include <boost/filesystem.hpp>
+
 using namespace std;
 
 CloudManager::CloudManager(const std::string &path, int64_t freq, viewer::Renderer &renderer)

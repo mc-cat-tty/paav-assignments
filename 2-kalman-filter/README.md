@@ -4,10 +4,9 @@
 
 To build the project: 
 ```
-mkdir build
+cmake -B build
 cd build
-cmake ..
-make -j2
+make -j$(nproc)
 ```
 Download the dataset with the point cloud from here (https://drive.google.com/file/d/1TWfV1odleih6d0SG7q2Sbs1jbZ4oSPkP/view?usp=share_link) and place the ```log``` folder in the used build folder. 
 
