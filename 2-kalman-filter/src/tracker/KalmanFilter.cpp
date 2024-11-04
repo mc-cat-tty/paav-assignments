@@ -72,7 +72,7 @@ void KalmanFilter::update(const Eigen::VectorXd &z)
   // New estimate
   x_ = x_ + (K * y);
   Eigen::MatrixXd I = Eigen::MatrixXd::Identity(x_.size(), x_.size());
-  P_ = (I - K - H_) * P_;
+  P_ = (I - K * H_) * P_;
 }
 
 void KalmanFilter::setState(double x, double y)

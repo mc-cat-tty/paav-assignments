@@ -1,15 +1,21 @@
 #include "tracker/Tracker.h"
+#include <eigen3/Eigen/Dense>
+
 
 Tracker::Tracker()
 {
     cur_id_ = 0;
-    distance_threshold_ = 0.0; // meters
+    
+    // TODO
+    distance_threshold_ = 2.0; // meters
     covariance_threshold = 0.0; 
-    loss_threshold = 0; //number of frames the track has not been seen
+
+    // number of frames the track has not been seen
+    // Roughly loss_threshold/10 seconds withouth seeing the object have to pass to remove it
+    loss_threshold = 50; 
 }
-Tracker::~Tracker()
-{
-}
+
+Tracker::~Tracker() {}
 
 /*
     This function removes tracks based on any strategy
@@ -20,12 +26,8 @@ void Tracker::removeTracks()
 
     for (size_t i = 0; i < tracks_.size(); ++i)
     {
-        // TODO
-        // Implement logic to discard old tracklets
-        // logic_to_keep is a dummy placeholder to make the code compile and should be subsituted with the real condition
-        bool logic_to_keep = true;
-        if (logic_to_keep)
-            tracks_to_keep.push_back(tracks_[i]);
+        bool logic_to_keep = tracks_[i].getLossCount() < loss_threshold;  // TODO: improve
+        if (logic_to_keep) tracks_to_keep.push_back(tracks_[i]);
     }
 
     tracks_.swap(tracks_to_keep);
@@ -51,21 +53,24 @@ void Tracker::addTracks(const std::vector<bool> &associated_detections, const st
 void Tracker::dataAssociation(std::vector<bool> &associated_detections, const std::vector<double> &centroids_x, const std::vector<double> &centroids_y)
 {
 
-    //Remind this vector contains a pair of tracks and its corresponding
+    // This vector contains a pair of track and its corresponding subject
     associated_track_det_ids_.clear();
 
     for (size_t i = 0; i < tracks_.size(); ++i)
     {
-
         int closest_point_id = -1;
         double min_dist = std::numeric_limits<double>::max();
+        
+        Eigen::Vector2d tracklet_coords(tracks_[i].getX(), tracks_[i].getY());
 
-        for (size_t j = 0; j < associated_detections.size(); ++j)
-        {
-            // TODO
-            // Implement logic to find the closest detection (centroids_x,centroids_y) 
-            // to the current track (tracks_) 
+        for (size_t j = 0; j < associated_detections.size(); ++j) {
+            Eigen::Vector2d subject_coords(centroids_x[j], centroids_y[j]);
+            auto dist_squared = (subject_coords - tracklet_coords).squaredNorm();
             
+            if (dist_squared < min_dist) {
+                min_dist = dist_squared;
+                closest_point_id = j;
+            }
         }
 
         // Associate the closest detection to a tracklet
@@ -83,11 +88,13 @@ void Tracker::track(const std::vector<double> &centroids_x,
 {
 
     std::vector<bool> associated_detections(centroids_x.size(), false);
-
-    // TODO: Predict the position
-    //For each track --> Predict the position of the tracklets
     
-    // TODO: Associate the predictions with the detections
+    // For each track --> Predict the position of the tracklets
+    for (auto &tracklet : tracks_) {
+        tracklet.predict();
+    }
+    
+    this->dataAssociation(associated_detections, centroids_x, centroids_y);
 
     // Update tracklets with the new detections
     for (int i = 0; i < associated_track_det_ids_.size(); ++i)
@@ -97,7 +104,6 @@ void Tracker::track(const std::vector<double> &centroids_x,
         tracks_[track_id].update(centroids_x[det_id], centroids_y[det_id], lidarStatus);
     }
 
-    // TODO: Remove dead tracklets
-
-    // TODO: Add new tracklets
+    this->removeTracks();
+    this->addTracks(associated_detections, centroids_x, centroids_y);
 }
