@@ -6,8 +6,13 @@
 
 int main(int argc, char *argv[])
 {
+    if (argc < 2) {
+        std::cerr << "Pass dataset folder path as first argument" << std::endl;
+        return 1;
+    }
+
     int64_t freq = 100;            // Frequency of the thread dedicated to process the point cloud
-    std::string log_path = "log";  // TODO: define the path to the log folder
+    std::string log_path = argv[1];  // Pass dataset folder from command line
 
     std::ifstream dataFile(log_path, std::ios::in | std::ios::binary);
     if (!dataFile)
