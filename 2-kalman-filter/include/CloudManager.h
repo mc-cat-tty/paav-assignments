@@ -15,7 +15,7 @@
 #include <pcl/filters/crop_box.h>
 #include <pcl/common/common.h>
 
-#include "viewer/Renderer.h"
+#include <viewer/Renderer.h>
 
 class CloudManager
 {

@@ -1,8 +1,10 @@
-#include "tracker/Tracker.h"
-#include "logger.hpp"
+#include <tracker/Tracker.h>
 #include <eigen3/Eigen/Dense>
 #include <algorithm>
 #include <limits>
+
+#define LOGGING_ON true
+#include <logger.hpp>
 
 Tracker::Tracker()
 {
@@ -10,11 +12,11 @@ Tracker::Tracker()
     
     distance_threshold_ = 5.0; // meters
     distance_threshold_squared_ = distance_threshold_*distance_threshold_;
-    covariance_threshold = 0.0; 
+    covariance_threshold = 1.5; 
 
     // number of frames the track has not been seen
     // Roughly loss_threshold/10 seconds withouth seeing the object have to pass to remove it
-    loss_threshold = 60;
+    loss_threshold = 200;
 }
 
 Tracker::~Tracker() {}
@@ -24,7 +26,11 @@ Tracker::~Tracker() {}
 */
 void Tracker::removeTracks() {
     // Monitor for how many frames the track is not linked to a subject
-    std::erase_if(tracks_, [this](auto track){ return track.getLossCount() > loss_threshold; });
+    std::erase_if(tracks_, [this](auto track){
+        return track.getLossCount() > loss_threshold
+            or track.getXCovariance() > covariance_threshold
+            or track.getYCovariance() > covariance_threshold;
+    });
 }
 
 /*
@@ -50,10 +56,11 @@ void Tracker::dataAssociation()
 
     // This vector contains a pair of track and its corresponding subject
     associated_track_det_ids_.clear();
-    auto logger = logger::Logger("ASSOCIATION");
+    static auto logger = logger::Logger("ASSOCIATION");
 
-    unsigned t_idx = 0;
+    int t_idx = -1;
     for (const auto &t : tracks_) {
+        ++t_idx;
         int closest_point_id = -1;
         double min_dist = std::numeric_limits<double>::max();
         
@@ -73,8 +80,7 @@ void Tracker::dataAssociation()
 
             logger << t_idx << " - " << s_idx << ": "
                 << euclidean_squared << " m (euclidean) vs "
-                << mahalanobis_squared << "m (mahalanobis)"
-                << std::endl;
+                << mahalanobis_squared << "m (mahalanobis)";
 
             auto dist_squared = mahalanobis_squared;  // Choose either euclidean or mahalanobis
             
@@ -98,8 +104,6 @@ void Tracker::dataAssociation()
         else {
             logger << "Contention just happened" << std::endl;
         }
-
-        ++t_idx;
     }
 }
 

@@ -13,7 +13,7 @@
 
 #include <pcl/visualization/pcl_visualizer.h>
 
-#include "viewer/viewer_utils.hpp"
+#include <viewer/viewer_utils.hpp>
 
 namespace viewer
 {

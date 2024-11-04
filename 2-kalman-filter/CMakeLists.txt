@@ -27,6 +27,7 @@ file(GLOB tracker-SRC   "src/tracker/KalmanFilter.cpp"
 set(tracker-LIBS ${PCL_LIBRARIES} pthread)
 add_library(tracker SHARED ${tracker-SRC})
 target_link_libraries(tracker ${tracker-LIBS} )
+target_include_directories(tracker PUBLIC include/)
 
 #-------------------------------------------------------------------------------
 # Build executables
