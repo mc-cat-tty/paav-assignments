@@ -16,12 +16,12 @@ public:
   void update(double x, double y, bool lidarStatus);
 
   // getters
-  double getX() { return kf_.getX(); }
-  double getY() { return kf_.getY(); }
-  Eigen::Vector2d getCoords() { return Eigen::Vector2d(getX(), getY()); }
+  double getX() const { return kf_.getX(); }
+  double getY() const { return kf_.getY(); }
+  Eigen::Vector2d getCoords() const { return Eigen::Vector2d(getX(), getY()); }
 
-  double getXCovariance() { return kf_.getXCovariance(); }
-  double getYCovariance() { return kf_.getYCovariance(); }
+  double getXCovariance() const { return kf_.getXCovariance(); }
+  double getYCovariance() const { return kf_.getYCovariance(); }
   int getId() { return id_; }
 
   int getLossCount() { return loss_count_; }

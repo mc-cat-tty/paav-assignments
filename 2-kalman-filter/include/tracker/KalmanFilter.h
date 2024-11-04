@@ -19,10 +19,10 @@ public:
   void setState(double x, double y);
 
   // getters
-  double getXCovariance() { return P_.coeff(0, 0); }
-  double getYCovariance() { return P_.coeff(1, 1); }
-  double getX() { return x_[0]; }
-  double getY() { return x_[1]; }
+  double getXCovariance() const { return P_.coeff(0, 0); }
+  double getYCovariance() const { return P_.coeff(1, 1); }
+  double getX() const { return x_[0]; }
+  double getY() const { return x_[1]; }
 
 private:
   // dt in seconds

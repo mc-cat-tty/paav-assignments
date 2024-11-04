@@ -8,26 +8,16 @@ namespace logger {
      */
     class Logger {
         public:
-            static Logger& getInstance() {
-                static Logger logger;
-                return logger;
+            Logger(const std::string &tag) : tag(tag) {}
+
+            template<typename T>
+            std::ostream& operator<<(T out_data) {
+                std::cerr << "[" << tag << "]: " << out_data;
+                return std::cerr;                    
             }
 
-            void logDistance(
-                unsigned tracklet_id, unsigned subject_id,
-                double euclidean_distance, double mahalanobis_distance,
-                std::string tag = "DISTANCE"
-            ) {
-                std::cerr << "[" << tag << "] "
-                    << tracklet_id << " - " << subject_id << ": "
-                    << euclidean_distance << " m (euclidean) vs " << mahalanobis_distance << "m (mahalanobis)"
-                    << std::endl;
-            }
         
         private:
-            Logger() = default;
-            Logger(const Logger&) = delete;
-            Logger(Logger&&) = delete;
-            Logger& operator=(const Logger&) = delete;
+            std::string tag;
     };
 }

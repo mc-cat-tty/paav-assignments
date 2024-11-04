@@ -50,13 +50,13 @@ void Tracker::dataAssociation()
 
     // This vector contains a pair of track and its corresponding subject
     associated_track_det_ids_.clear();
-    auto &logger = logger::Logger::getInstance();
+    auto logger = logger::Logger("ASSOCIATION");
 
-    for (size_t i = 0; i < tracks_.size(); ++i) {
+    unsigned t_idx = 0;
+    for (const auto &t : tracks_) {
         int closest_point_id = -1;
         double min_dist = std::numeric_limits<double>::max();
         
-        auto t = tracks_[i];
         auto tracklet_coords = t.getCoords();
 
         unsigned s_idx = 0;
@@ -70,7 +70,11 @@ void Tracker::dataAssociation()
             
             auto euclidean_squared = delta.squaredNorm();
             auto mahalanobis_squared = delta.transpose() * covariance.inverse() * delta;
-            logger.logDistance(i, s_idx, euclidean_squared, mahalanobis_squared);
+
+            logger << t_idx << " - " << s_idx << ": "
+                << euclidean_squared << " m (euclidean) vs "
+                << mahalanobis_squared << "m (mahalanobis)"
+                << std::endl;
 
             auto dist_squared = mahalanobis_squared;  // Choose either euclidean or mahalanobis
             
@@ -83,11 +87,19 @@ void Tracker::dataAssociation()
         }
 
         // Associate the closest detection to a tracklet
-        if (min_dist < distance_threshold_squared_ && !subjects[closest_point_id].associated)
-        {
-            associated_track_det_ids_.emplace_back(closest_point_id, i);
+
+        // Prediction gating
+        if (min_dist > distance_threshold_squared_) continue;
+    
+        if (not subjects[closest_point_id].associated) {
+            associated_track_det_ids_.emplace_back(closest_point_id, t_idx);
             subjects[closest_point_id].associated = true;
         }
+        else {
+            logger << "Contention just happened" << std::endl;
+        }
+
+        ++t_idx;
     }
 }
 
