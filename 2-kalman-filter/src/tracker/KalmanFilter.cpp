@@ -57,6 +57,7 @@ void KalmanFilter::init(double dt)
 
 void KalmanFilter::predict()
 {
+  // U matrix (input variable) doesn't exist in this problem since we are not controlling the system/plant.
   x_ = F_ * x_;
   P_ = F_ * P_ * F_.transpose() + Q_;
 }
