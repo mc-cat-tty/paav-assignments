@@ -24,7 +24,7 @@ class Simulation:
         self.x = 0                      # X position (m)
         self.y = 0                      # Y position (m)
         self.theta = 0                  # Heading angle (rad)
-        self.vx = 0.0                     # Longitudinal velocity (m/s)
+        self.vx = 10                     # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
 
@@ -37,19 +37,16 @@ class Simulation:
 
     def kinematic_model(self, ax, delta):
         """ Kinematic single-track model equations of motion. """
-        
-        # Aerodynamic drag and rolling resistance forces
-        F_aero = 0.0
-        F_roll = self.C_rr * self.mass * 9.81
-        
+
         dx = np.array([
-            0,
-            0,
-            0,
-            0,
-            0,
+            self.vx * np.cos(self.theta),
+            self.vx * np.sin(self.theta),
+            self.vx * np.tan(delta) / self.l_wb,
+            ax * np.cos(self.theta),
+            ax * np.sin(self.theta),
             0
         ])
+
         return dx
 
     def linear_single_track_model(self, ax, delta):

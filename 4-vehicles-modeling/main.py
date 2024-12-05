@@ -4,7 +4,7 @@ from matplotlib.animation import FuncAnimation
 from simulation import Simulation
 
 TIME_QUANTA = 0.08
-ACC_X = 0.0
+ACC_X = 1.0
 STEER_ANGLE = 0.0
 SIM_TIME = 10.0
 
@@ -55,8 +55,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     for step in range(steps):
         # Make one step simulation via model integration
         # Calculate sinusoidal steering angle
-        #time = step * dt
-        # steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
+        time = step * dt
+        steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
 
         sim.integrate(ax, steer)
         
