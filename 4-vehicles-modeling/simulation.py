@@ -13,6 +13,7 @@ class Simulation:
         self.dt = dt                    # Time step (s)
         self.integrator = integrator    # Integrator choice
         self.model = model              # Model choice
+        self.Fz = self.mass * 9.81      # Normal force
         
         # Aerodynamic and rolling resistance parameters
         self.rho = 1.225               # Air density (kg/m^3)
@@ -29,21 +30,28 @@ class Simulation:
         self.r = 0                      # Yaw rate (rad/s)
 
         # Pacejka's Magic Formula coefficients
-        self.B, self.C, self.D, self.E = 0, 0 , 0, 0
+        self.B, self.C, self.D, self.E = 7.1433, 1.3507, 1.0489, -0.0074722
         self.B_f, self.C_f, self.D_f, self.E_f = self.B, self.C, self.D, self.E
         self.B_r, self.C_r, self.D_r, self.E_r = self.B, self.C, self.D, self.E
         
         self.Cf, self.Cr = self.B_f*self.C_f*self.D_f, self.B_r*self.C_r*self.D_r  # Cornering stiffness front/rear (N/rad)
 
+
     def kinematic_model(self, ax, delta):
         """ Kinematic single-track model equations of motion. """
+
+        # Aerodynamic drag and rolling resistance forces
+        F_aero = 0#
+        F_roll = self.C_rr * self.mass * 9.81
+
+        # TODO: Include forces
 
         dx = np.array([
             self.vx * np.cos(self.theta),
             self.vx * np.sin(self.theta),
             self.vx * np.tan(delta) / self.l_wb,
             ax * np.cos(self.theta),
-            ax * np.sin(self.theta),
+            0,
             0
         ])
 
@@ -53,30 +61,26 @@ class Simulation:
         """ Linear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = 0#
-        alpha_r = 0#
-
-        # Vertical forces (nominal vertical load)
-        Fz_f_nominal = 0#
-        Fz_r_nominal = 0#
+        alpha_f = delta - (self.vy + self.l_f * self.r) / self.vx
+        alpha_r = - (self.vy - self.l_r * self.r) / self.vx
 
         # Front and rear lateral forces
-        Fyf = 0#
-        Fyr = 0#
+        Fyf, Fyr = alpha_r * self.Cr, alpha_f * self.Cf
+        Fy = (Fyr + Fyf) * self.Fz
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 0#
+        F_aero = 0
         F_roll = self.C_rr * self.mass * 9.81
 
         # Dynamics equations
-        dx = np.array([
-            0,  # dx/dt
-            0,  # dy/dt
-            0,                                                      # dtheta/dt
-            0,       # dvx/dt with resistive forces
-            0,                  # dvy/dt
-            0                # dr/dt
-        ])
+        _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
+        _vy = self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta)
+        _yaw_rate = self.r
+        _dvx = ax + self.r * self.vy
+        _dvy = Fy / self.mass - self.r * self.vx
+        _dyaw_rate = (2 * self.l_f * self.Cf / self.I_z) * alpha_f - (2 * self.l_r * self.Cr / self.I_z) * alpha_r
+
+        dx = np.array([_vx, _vy, _yaw_rate, _dvx, _dvy, _dyaw_rate])
         
         return dx
 

@@ -69,8 +69,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         r_vals.append(sim.r)
 
         # Calculate slip angles for front and rear tires
-        alpha_f = 0.0  # Front tire slip angle
-        alpha_r = 0.0         # Rear tire slip angle
+        alpha_f = 0.0   # Front tire slip angle
+        alpha_r = 0.0   # Rear tire slip angle
 
         alpha_f_vals.append(alpha_f)
         alpha_r_vals.append(alpha_r)
