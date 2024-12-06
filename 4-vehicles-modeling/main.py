@@ -3,10 +3,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from simulation import Simulation
 
-TIME_QUANTA = 0.001
+# Sinusoidal input if True, constant otherwise
+SIN_INPUT: bool = False
+
+TIME_QUANTA = 0.08
 ACC_X = 1.0
-STEER_ANGLE = 0.0
-SIM_TIME = 5.0
+STEER_ANGLE = 0.055
+SIM_TIME = 10.0
+INIT_LONG_VEL = 24
 
 def plot_comparison(results, labels, title, xlabel, ylabel):
     """ Plot comparison of results for a specific state variable. """
@@ -42,7 +46,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     Iz = 1792           # Yaw moment of inertia (kg*m^2)
 
     # Initialize the simulation
-    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model)
+    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, init_vx=INIT_LONG_VEL)
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
@@ -56,7 +60,11 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         # Make one step simulation via model integration
         # Calculate sinusoidal steering angle
         time = step * dt
-        steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
+
+        if SIN_INPUT:
+          steer = steer_max * np.sin(2 * np.pi * frequency * time)  # Sinusoidal steering angle
+        else:
+          steer = STEER_ANGLE
 
         sim.integrate(ax, steer)
         

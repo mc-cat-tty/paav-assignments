@@ -1,7 +1,7 @@
 import numpy as np
 
 class Simulation:
-    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic"):
+    def __init__(self, lf, lr, mass, Iz, dt, integrator="euler", model="kinematic", init_vx = 0):
         """
         Initialize the simulation parameters.
         """
@@ -25,7 +25,7 @@ class Simulation:
         self.x = 0                      # X position (m)
         self.y = 0                      # Y position (m)
         self.theta = 0                  # Heading angle (rad)
-        self.vx = 27                     # Longitudinal velocity (m/s)
+        self.vx = init_vx               # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
 
