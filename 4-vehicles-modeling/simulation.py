@@ -65,8 +65,8 @@ class Simulation:
 
         # Front and rear vertical forces
         # geometrically distributed among front and rear axle
-        Fzf = self.Fz * self.l_f/self.l_wb
-        Fzr = self.Fz * self.l_r/self.l_wb
+        Fzf = self.Fz * self.l_r/self.l_wb
+        Fzr = self.Fz * self.l_f/self.l_wb
 
         # Front and rear lateral forces
         Fyf = alpha_f * self.Cf * Fzf
@@ -81,9 +81,9 @@ class Simulation:
         _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
         _vy = self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta)
         _yaw_rate = self.r
-        _dvx = ax + self.vy * self.r - (F_aero + F_roll) / self.mass
-        _dvy = 2 * (Fyr + Fyf) / self.mass - self.vx * self.r
-        _dyaw_rate = 2 * (Fyf * self.l_f - Fyr * self.l_r) / self.I_z
+        _dvx = ax + self.vy * self.r - (F_aero + F_roll + Fyf * np.sin(delta)) / self.mass
+        _dvy = (Fyr + Fyf * np.cos(delta)) / self.mass - self.vx * self.r
+        _dyaw_rate = (Fyf * self.l_f * np.cos(delta) - Fyr * self.l_r) / self.I_z
 
         dx = np.array([_vx, _vy, _yaw_rate, _dvx, _dvy, _dyaw_rate])
         
@@ -98,8 +98,8 @@ class Simulation:
 
         # Front and rear vertical forces
         # geometrically distributed among front and rear axle
-        Fzf = self.Fz * self.l_f/self.l_wb
-        Fzr = self.Fz * self.l_r/self.l_wb
+        Fzf = self.Fz * self.l_r/self.l_wb
+        Fzr = self.Fz * self.l_f/self.l_wb
 
         # Front and rear lateral forces
         lateral_force_f = lambda Fz, alpha: Fz * self.D * np.sin(self.C * np.arctan(self.B * alpha - self.E * (self.B * alpha - np.arctan(self.B * alpha))))
@@ -116,9 +116,9 @@ class Simulation:
         _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
         _vy = self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta)
         _yaw_rate = self.r
-        _dvx = ax + self.vy * self.r - (F_aero + F_roll) / self.mass
-        _dvy = 2 * (Fyr + Fyf) / self.mass - self.vx * self.r
-        _dyaw_rate = 2 * (Fyf * self.l_f - Fyr * self.l_r) / self.I_z
+        _dvx = ax + self.vy * self.r - (F_aero + F_roll + Fyf * np.sin(delta)) / self.mass
+        _dvy = (Fyr + Fyf * np.cos(delta)) / self.mass - self.vx * self.r
+        _dyaw_rate = (Fyf * self.l_f * np.cos(delta) - Fyr * self.l_r) / self.I_z
 
         dx = np.array([_vx, _vy, _yaw_rate, _dvx, _dvy, _dyaw_rate])
         return dx
