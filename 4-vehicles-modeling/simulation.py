@@ -25,7 +25,7 @@ class Simulation:
         self.x = 0                      # X position (m)
         self.y = 0                      # Y position (m)
         self.theta = 0                  # Heading angle (rad)
-        self.vx = 10                     # Longitudinal velocity (m/s)
+        self.vx = 27                     # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
 
@@ -41,16 +41,15 @@ class Simulation:
         """ Kinematic single-track model equations of motion. """
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 0#
-        F_roll = self.C_rr * self.mass * 9.81
-
-        # TODO: Include forces
+        v = np.linalg.norm((self.vx, self.vy))
+        F_aero = (self.rho * self.C_d * self.A * v * v) / 2
+        F_roll = self.C_rr * self.Fz/4
 
         dx = np.array([
             self.vx * np.cos(self.theta),
             self.vx * np.sin(self.theta),
             self.vx * np.tan(delta) / self.l_wb,
-            ax * np.cos(self.theta),
+            ax * np.cos(self.theta) - (F_aero + F_roll) / self.mass,
             0,
             0
         ])
@@ -64,21 +63,27 @@ class Simulation:
         alpha_f = delta - (self.vy + self.l_f * self.r) / self.vx
         alpha_r = - (self.vy - self.l_r * self.r) / self.vx
 
+        # Front and rear vertical forces
+        # geometrically distributed among front and rear axle
+        Fzf = self.Fz * self.l_f/self.l_wb
+        Fzr = self.Fz * self.l_r/self.l_wb
+
         # Front and rear lateral forces
-        Fyf, Fyr = alpha_r * self.Cr, alpha_f * self.Cf
-        Fy = (Fyr + Fyf) * self.Fz
+        Fyf = alpha_f * self.Cf * Fzf
+        Fyr = alpha_r * self.Cr * Fzr
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 0
-        F_roll = self.C_rr * self.mass * 9.81
+        v = np.linalg.norm((self.vx, self.vy))
+        F_aero = (self.rho * self.C_d * self.A * v * v) / 2
+        F_roll = self.C_rr * self.Fz/4
 
         # Dynamics equations
         _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
         _vy = self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta)
         _yaw_rate = self.r
-        _dvx = ax + self.r * self.vy
-        _dvy = Fy / self.mass - self.r * self.vx
-        _dyaw_rate = (2 * self.l_f * self.Cf / self.I_z) * alpha_f - (2 * self.l_r * self.Cr / self.I_z) * alpha_r
+        _dvx = ax + self.vy * self.r - (F_aero + F_roll) / self.mass
+        _dvy = 2 * (Fyr + Fyf) / self.mass - self.vx * self.r
+        _dyaw_rate = 2 * (Fyf * self.l_f - Fyr * self.l_r) / self.I_z
 
         dx = np.array([_vx, _vy, _yaw_rate, _dvx, _dvy, _dyaw_rate])
         
