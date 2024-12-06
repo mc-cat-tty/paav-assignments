@@ -75,7 +75,7 @@ class Simulation:
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
         F_aero = (self.rho * self.C_d * self.A * v * v) / 2
-        F_roll = self.C_rr * self.Fz/4
+        F_roll = self.C_rr * self.Fz
 
         # Dynamics equations
         _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
@@ -93,31 +93,34 @@ class Simulation:
         """ Nonlinear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = 0#
-        alpha_r = 0#
+        alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
+        alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
 
-        # Vertical forces (nominal vertical load)
-        Fz_f_nominal = 0#
-        Fz_r_nominal = 0#
+        # Front and rear vertical forces
+        # geometrically distributed among front and rear axle
+        Fzf = self.Fz * self.l_f/self.l_wb
+        Fzr = self.Fz * self.l_r/self.l_wb
 
         # Front and rear lateral forces
-        Fyf = 0#
-        Fyr = 0#
+        lateral_force_f = lambda Fz, alpha: Fz * self.D * np.sin(self.C * np.arctan(self.B * alpha - self.E * (self.B * alpha - np.arctan(self.B * alpha))))
+
+        Fyf = lateral_force_f(Fzf, alpha_f)
+        Fyr = lateral_force_f(Fzr, alpha_r)
 
         # Aerodynamic drag and rolling resistance forces
-        F_aero = 0#
-        F_roll = self.C_rr * self.mass * 9.81
+        v = np.linalg.norm((self.vx, self.vy))
+        F_aero = (self.rho * self.C_d * self.A * v * v) / 2
+        F_roll = self.C_rr * self.Fz
 
         # Dynamics equations
-        dx = np.array([
-            0,  # dx/dt
-            0,  # dy/dt
-            0,                                                      # dtheta/dt
-            0,       # dvx/dt with resistive forces
-            0,                  # dvy/dt
-            0                # dr/dt
-        ])
-        
+        _vx = self.vx * np.cos(self.theta) - self.vy * np.sin(self.theta)
+        _vy = self.vx * np.sin(self.theta) + self.vy * np.cos(self.theta)
+        _yaw_rate = self.r
+        _dvx = ax + self.vy * self.r - (F_aero + F_roll) / self.mass
+        _dvy = 2 * (Fyr + Fyf) / self.mass - self.vx * self.r
+        _dyaw_rate = 2 * (Fyf * self.l_f - Fyr * self.l_r) / self.I_z
+
+        dx = np.array([_vx, _vy, _yaw_rate, _dvx, _dvy, _dyaw_rate])
         return dx
 
     def integrate(self, ax, delta):

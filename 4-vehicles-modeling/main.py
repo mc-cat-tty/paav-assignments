@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from simulation import Simulation
 
-TIME_QUANTA = 0.08
+TIME_QUANTA = 0.001
 ACC_X = 1.0
 STEER_ANGLE = 0.0
-SIM_TIME = 10.0
+SIM_TIME = 5.0
 
 def plot_comparison(results, labels, title, xlabel, ylabel):
     """ Plot comparison of results for a specific state variable. """
