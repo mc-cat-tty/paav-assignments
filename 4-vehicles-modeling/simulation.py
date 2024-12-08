@@ -28,6 +28,8 @@ class Simulation:
         self.vx = init_vx               # Longitudinal velocity (m/s)
         self.vy = 0                     # Lateral velocity (m/s)
         self.r = 0                      # Yaw rate (rad/s)
+        self.alpha_f = 0                # Front sleep angle
+        self.alpha_r = 0                # Rear sleep angle
 
         # Pacejka's Magic Formula coefficients
         self.B, self.C, self.D, self.E = 7.1433, 1.3507, 1.0489, -0.0074722
@@ -39,6 +41,9 @@ class Simulation:
 
     def kinematic_model(self, ax, delta):
         """ Kinematic single-track model equations of motion. """
+
+        self.alpha_f = 0
+        self.alpha_r = 0
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
@@ -60,8 +65,8 @@ class Simulation:
         """ Linear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = delta - (self.vy + self.l_f * self.r) / self.vx
-        alpha_r = - (self.vy - self.l_r * self.r) / self.vx
+        self.alpha_f = delta - (self.vy + self.l_f * self.r) / self.vx
+        self.alpha_r = - (self.vy - self.l_r * self.r) / self.vx
 
         # Front and rear vertical forces
         # geometrically distributed among front and rear axle
@@ -69,8 +74,8 @@ class Simulation:
         Fzr = self.Fz * self.l_f/self.l_wb
 
         # Front and rear lateral forces
-        Fyf = alpha_f * self.Cf * Fzf
-        Fyr = alpha_r * self.Cr * Fzr
+        Fyf = self.alpha_f * self.Cf * Fzf
+        Fyr = self.alpha_r * self.Cr * Fzr
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
@@ -93,8 +98,8 @@ class Simulation:
         """ Nonlinear single-track model with aerodynamic and rolling resistance. """
         
         # Tire slip angles
-        alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
-        alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
+        self.alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
+        self.alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
 
         # Front and rear vertical forces
         # geometrically distributed among front and rear axle
@@ -104,8 +109,8 @@ class Simulation:
         # Front and rear lateral forces
         lateral_force_f = lambda Fz, alpha: Fz * self.D * np.sin(self.C * np.arctan(self.B * alpha - self.E * (self.B * alpha - np.arctan(self.B * alpha))))
 
-        Fyf = lateral_force_f(Fzf, alpha_f)
-        Fyr = lateral_force_f(Fzr, alpha_r)
+        Fyf = lateral_force_f(Fzf, self.alpha_f)
+        Fyr = lateral_force_f(Fzr, self.alpha_r)
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))

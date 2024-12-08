@@ -4,13 +4,13 @@ from matplotlib.animation import FuncAnimation
 from simulation import Simulation
 
 # Sinusoidal input if True, constant otherwise
-SIN_INPUT: bool = False
+SIN_INPUT: bool = True
 
-TIME_QUANTA = 0.08
+TIME_QUANTA = 0.001
 ACC_X = 1.0
 STEER_ANGLE = 0.055
-SIM_TIME = 10.0
-INIT_LONG_VEL = 24
+SIM_TIME = 5
+INIT_LONG_VEL = 27
 
 def plot_comparison(results, labels, title, xlabel, ylabel):
     """ Plot comparison of results for a specific state variable. """
@@ -75,13 +75,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         vx_vals.append(sim.vx)
         vy_vals.append(sim.vy)
         r_vals.append(sim.r)
-
-        # Calculate slip angles for front and rear tires
-        alpha_f = 0.0   # Front tire slip angle
-        alpha_r = 0.0   # Rear tire slip angle
-
-        alpha_f_vals.append(alpha_f)
-        alpha_r_vals.append(alpha_r)
+        alpha_f_vals.append(sim.alpha_f)
+        alpha_r_vals.append(sim.alpha_r)
 
     return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals
 
