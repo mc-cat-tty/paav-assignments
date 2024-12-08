@@ -30,6 +30,8 @@ class Simulation:
         self.r = 0                      # Yaw rate (rad/s)
         self.alpha_f = 0                # Front sleep angle
         self.alpha_r = 0                # Rear sleep angle
+        self.Fyf = 0                    # Lateral front tire force
+        self.Fyr = 0                    # Lateral rear tire force
 
         # Pacejka's Magic Formula coefficients
         self.B, self.C, self.D, self.E = 7.1433, 1.3507, 1.0489, -0.0074722
@@ -41,9 +43,6 @@ class Simulation:
 
     def kinematic_model(self, ax, delta):
         """ Kinematic single-track model equations of motion. """
-
-        self.alpha_f = 0
-        self.alpha_r = 0
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
@@ -74,8 +73,8 @@ class Simulation:
         Fzr = self.Fz * self.l_f/self.l_wb
 
         # Front and rear lateral forces
-        Fyf = self.alpha_f * self.Cf * Fzf
-        Fyr = self.alpha_r * self.Cr * Fzr
+        Fyf = self.Fyf = self.alpha_f * self.Cf * Fzf
+        Fyr = self.Fyr = self.alpha_r * self.Cr * Fzr
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
@@ -109,8 +108,8 @@ class Simulation:
         # Front and rear lateral forces
         lateral_force_f = lambda Fz, alpha: Fz * self.D * np.sin(self.C * np.arctan(self.B * alpha - self.E * (self.B * alpha - np.arctan(self.B * alpha))))
 
-        Fyf = lateral_force_f(Fzf, self.alpha_f)
-        Fyr = lateral_force_f(Fzr, self.alpha_r)
+        Fyf = self.Fyf = lateral_force_f(Fzf, self.alpha_f)
+        Fyr = self.Fyr = lateral_force_f(Fzr, self.alpha_r)
 
         # Aerodynamic drag and rolling resistance forces
         v = np.linalg.norm((self.vx, self.vy))
