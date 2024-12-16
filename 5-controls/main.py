@@ -32,7 +32,7 @@ max_steer = 3.14  # Maximum steering angle in radians
 long_control_pid = pid.PIDController(kp=2, ki=0, kd=1, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
-k_pp = 0.001  # Speed proportional gain for Pure Pursuit
+k_pp = 1  # Speed proportional gain for Pure Pursuit
 look_ahead = 1.0  # Minimum look-ahead distance for Pure Pursuit
 k_stanley = 0.001  # Gain for cross-track error for Stanley
 pp_controller = purepursuit.PurePursuitController(wheelbase, max_steer)
