@@ -10,10 +10,11 @@ import cubic_spline_planner
 import math
 
 # Simulation parameters
-dt = 0.001         # Time step (s)
+dt = 0.05         # Time step (s)
 ax = 0.0            # Constant longitudinal acceleration (m/s^2)
+vx = 0.001       # Initial longitudinal velocity
 steer = 0.0      # Constant steering angle (rad)
-sim_time = 60.0      # Simulation duration in seconds
+sim_time = 120.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
@@ -28,7 +29,7 @@ Iz = 1792           # Yaw moment of inertia (kg*m^2)
 max_steer = 3.14  # Maximum steering angle in radians
 
 # Create instance of PID for Longitudinal Control
-long_control_pid = pid.PIDController(kp=0.001, ki=0.001, kd=0.001, output_limits=(-2, 2))
+long_control_pid = pid.PIDController(kp=2, ki=0, kd=1, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
 k_pp = 0.001  # Speed proportional gain for Pure Pursuit
@@ -97,7 +98,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     """ Run a simulation with the given parameters and return all states. """
 
     # Initialize the simulation
-    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model)
+    sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, init_vx=vx)
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
