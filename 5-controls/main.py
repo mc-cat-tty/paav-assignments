@@ -29,7 +29,7 @@ Iz = 1792           # Yaw moment of inertia (kg*m^2)
 max_steer = 3.14  # Maximum steering angle in radians
 
 # Create instance of PID for Longitudinal Control
-long_control_pid = pid.PIDController(kp=2, ki=0.001, kd=0.1, output_limits=(-2, 2))
+long_control_pid = pid.PIDController(kp=2, ki=0.04, kd=0.1, output_limits=(-2, 2), anti_windup_gain=0.001)
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
 k_pp = 1  # Speed proportional gain for Pure Pursuit
