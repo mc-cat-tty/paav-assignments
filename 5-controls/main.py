@@ -10,15 +10,15 @@ import cubic_spline_planner
 import math
 
 # Simulation parameters
-dt = 0.05         # Time step (s)
-ax = 0.0            # Constant longitudinal acceleration (m/s^2)
-vx = 0.001       # Initial longitudinal velocity
-steer = 0.0      # Constant steering angle (rad)
+dt = 0.05             # Time step (s)
+ax = 0.0              # Constant longitudinal acceleration (m/s^2)
+vx = 0.0              # Initial longitudinal velocity
+steer = 0.0           # Constant steering angle (rad)
 sim_time = 120.0      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 15.0
+target_speed = 20.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -29,7 +29,7 @@ Iz = 1792           # Yaw moment of inertia (kg*m^2)
 max_steer = 3.14  # Maximum steering angle in radians
 
 # Create instance of PID for Longitudinal Control
-long_control_pid = pid.PIDController(kp=2, ki=0, kd=1, output_limits=(-2, 2))
+long_control_pid = pid.PIDController(kp=2, ki=0.001, kd=0.1, output_limits=(-2, 2))
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
 k_pp = 1  # Speed proportional gain for Pure Pursuit

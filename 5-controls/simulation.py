@@ -96,9 +96,11 @@ class Simulation:
     def nonlinear_single_track_model(self, ax, delta):
         """ Nonlinear single-track model with aerodynamic and rolling resistance. """
         
+        clamped_vx = max(self.vx, 0.0001)
+
         # Tire slip angles
-        self.alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
-        self.alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
+        self.alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / clamped_vx)
+        self.alpha_r = - np.arctan((self.vy - self.l_r * self.r) / clamped_vx)
 
         # Front and rear vertical forces
         # geometrically distributed among front and rear axle
