@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 class StanleyController:
-    def __init__(self, k, l_f, max_steer):
+    def __init__(self, k, l_f, max_steer, heading_error_weight = 1.0, cross_track_error_weigth = 1.0):
         """
         Initialize the Stanley Controller.
         
@@ -14,6 +14,8 @@ class StanleyController:
         self.k = k
         self.l_f = l_f
         self.max_steer = max_steer
+        self.heading_error_weight = heading_error_weight
+        self.cross_track_error_weigth = cross_track_error_weigth
 
     def compute_steering_angle(self, current_pose, target_pose, speed):
         """
@@ -49,10 +51,7 @@ class StanleyController:
         cross_track_correction = math.atan2(self.k * cross_track_error, effective_speed)
 
         # Total steering angle
-        # TO-DO: Adjust the gains in order to improve the controller's tracking
-        # right now they are both 1.0
-        delta = 1.0 * heading_error + 1.0 * cross_track_correction
-
+        delta = self.heading_error_weight * heading_error + self.cross_track_error_weigth * cross_track_correction
 
         # Saturate the steering angle within the maximum limits
         delta = max(-self.max_steer, min(delta, self.max_steer))

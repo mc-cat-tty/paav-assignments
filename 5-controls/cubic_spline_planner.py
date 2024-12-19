@@ -185,6 +185,8 @@ class Spline2D:
         """
         dx = self.sx.calcd(s)
         dy = self.sy.calcd(s)
+        dx = 0.0001 if dx is None else dx
+        dy = 0.0001 if dy is None else dy
         yaw = math.atan2(dy, dx)
         return yaw
 

@@ -4,12 +4,19 @@ from matplotlib.animation import FuncAnimation
 from simulation import Simulation
 import pid
 import purepursuit
-# import stanley
+import stanley
 # from mpc import *
 import cubic_spline_planner
 import math
+from enum import Enum, auto
+
+class Controller(Enum):
+    PURE_PURSUIT = auto()
+    STANLEY = auto()
+    MPC = auto()
 
 # Simulation parameters
+selected_controller: Controller = Controller.STANLEY
 dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
@@ -32,11 +39,12 @@ max_steer = 3.14  # Maximum steering angle in radians
 long_control_pid = pid.PIDController(kp=2, ki=0.04, kd=0.1, output_limits=(-2, 2), anti_windup_gain=0.001)
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
-k_pp = 1  # Speed proportional gain for Pure Pursuit
-look_ahead = 1.0  # Minimum look-ahead distance for Pure Pursuit
-k_stanley = 0.001  # Gain for cross-track error for Stanley
+k_pp = 0.4  # Speed proportional gain for Pure Pursuit
+look_ahead = 0.1  # Minimum look-ahead distance for Pure Pursuit
 pp_controller = purepursuit.PurePursuitController(wheelbase, max_steer)
-# stanley_controller = stanley.StanleyController(k_stanley, lf, max_steer)
+
+k_stanley = 6.0  # Gain for cross-track error for Stanley
+stanley_controller = stanley.StanleyController(k_stanley, lf, max_steer, 1.3, 2.0)
 
 def load_path(file_path):
     file = open(file_path, "r")
@@ -106,6 +114,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
 
     # casadi_model() #for MPC... TO-DO
 
+    total_error = 0
+
     for step in range(steps):
     
         # Print time
@@ -125,47 +135,44 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         position_projected = path_spline.calc_position(path_spline.cur_s)
         prj = [ position_projected[0], position_projected[1] ]
         local_error = point_transform(prj, actual_position, sim.theta)
+        total_error += local_error[0]*local_error[0] + local_error[1]*local_error[1]
 
         if(abs(local_error[1]) > 1.0):
             print("Lateral error is higher than 1.0... ending the simulation")
             print("Lateral error: ", local_error[1])
             break
 
-        # get target pose
-        Lf = k_pp * sim.vx + look_ahead #Bonus: include here the curvature dependency
-        s_pos = path_spline.cur_s + Lf
-
-        trg = path_spline.calc_position(s_pos)
-        trg = [ trg[0], trg[1] ]
-        pp_position = actual_position
-        # Adjust CoG position to the rear axle position for PP
-        pp_position = actual_position[0] + lr * math.cos(sim.theta), actual_position[1] + lr * math.sin(sim.theta)
-        loc_trg = point_transform(trg, pp_position, sim.theta)
-
         # Calculate steer to track path
-        
-        ####### Pure Pursuit # Comment for Exercise 1
-        # Compute the look-ahead distance
-        steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
-        
-        ###### Stanley # Comment for Exercise 1
-        #TO-DO: Move actual position (CoG) to the front axle for stanley
-        # stanley_target = position_projected[0], position_projected[1], path_spline.calc_yaw(path_spline.cur_s)
-        # steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
+        match selected_controller:
+            case Controller.PURE_PURSUIT:
+                # Compute the look-ahead distance
+                Lf = k_pp * sim.vx + look_ahead #Bonus: include here the curvature dependency
+                s_pos = path_spline.cur_s + Lf
 
-        ###### MPC
+                # get target pose
+                trg = path_spline.calc_position(s_pos)
+                trg = [ trg[0], trg[1] ]
+                # Adjust CoG position to the rear axle position for PP
+                pp_position = actual_position[0] - lr * math.cos(sim.theta), actual_position[1] - lr * math.sin(sim.theta)
+                loc_trg = point_transform(trg, pp_position, sim.theta)
+                steer = pp_controller.compute_steering_angle(loc_trg, sim.theta, Lf)
+                
+            case Controller.STANLEY:
+                stanley_target = position_projected[0], position_projected[1], path_spline.calc_yaw(path_spline.cur_s)
+                steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
 
-        # get future horizon targets pose
-        # targets = [ ]
-        # s_pos = path_spline.cur_s
-        # for i in range(N):
-        #     step_increment = (sim.vx)*dt
-        #     trg = point_transform(path_spline.calc_position(s_pos), actual_pose, sim.theta)
-        #     trg = [ trg[0], trg[1] ]
-        #     targets.append(trg)
-        #     s_pos += step_increment
-
-        # steer = opt_step(targets, sim)
+            case Controller.MPC:
+                pass
+                # get future horizon targets pose
+                # targets = [ ]
+                # s_pos = path_spline.cur_s
+                # for i in range(N):
+                #     step_increment = (sim.vx)*dt
+                #     trg = point_transform(path_spline.calc_position(s_pos), actual_pose, sim.theta)
+                #     trg = [ trg[0], trg[1] ]
+                #     targets.append(trg)
+                #     s_pos += step_increment
+                # steer = opt_step(targets, sim)
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
@@ -185,6 +192,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         alpha_f_vals.append(alpha_f)
         alpha_r_vals.append(alpha_r)
 
+    print(total_error)
     return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals
 
 def main():
