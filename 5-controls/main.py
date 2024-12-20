@@ -21,11 +21,9 @@ dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
-sim_time = 120.0      # Simulation duration in seconds
-steps = int(sim_time / dt)  # Simulation steps (30 seconds)
 
 # Control references
-target_speed = 20.0
+target_speed = 25.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -39,8 +37,10 @@ max_steer = 3.14  # Maximum steering angle in radians
 long_control_pid = pid.PIDController(kp=2, ki=0.04, kd=0.1, output_limits=(-2, 2), anti_windup_gain=0.001)
 
 # Create instance of PurePursuit, Stanley and MPC for Lateral Control
-k_pp = 0.4  # Speed proportional gain for Pure Pursuit
-look_ahead = 0.1  # Minimum look-ahead distance for Pure Pursuit
+k_v_pp = 0.05  # Speed proportional gain for Pure Pursuit
+k_c_pp = 0.0001  # Curvature proportional gain for Pure Pursuit
+base_look_ahead = 0.5  # Minimum look-ahead distance for Pure Pursuit
+min_look_ahead = lf
 pp_controller = purepursuit.PurePursuitController(wheelbase, max_steer)
 
 k_stanley = 6.0  # Gain for cross-track error for Stanley
@@ -102,11 +102,13 @@ def plot_trajectory(x_vals, y_vals, labels, path_spline):
     plt.axis("equal")
     plt.show()
 
-def run_simulation(ax, steer, dt, integrator, model, steps=500):
+def run_simulation(ax, steer, dt, integrator, model):
     """ Run a simulation with the given parameters and return all states. """
 
     # Initialize the simulation
     sim = Simulation(lf, lr, mass, Iz, dt, integrator=integrator, model=model, init_vx=vx)
+    start_x = sim.x
+    first_half_turn = True
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
@@ -115,8 +117,11 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     # casadi_model() #for MPC... TO-DO
 
     total_error = 0
+    step = 0
 
-    for step in range(steps):
+    while sim.x <= start_x+1 or first_half_turn:
+        if sim.x < start_x-1: first_half_turn = False
+        step+=1
     
         # Print time
         print("Time:", step*dt)
@@ -146,7 +151,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         match selected_controller:
             case Controller.PURE_PURSUIT:
                 # Compute the look-ahead distance
-                Lf = k_pp * sim.vx + look_ahead #Bonus: include here the curvature dependency
+                Lf = base_look_ahead + k_v_pp * sim.vx + k_c_pp / max(1e-2, abs(path_spline.calc_curvature(path_spline.cur_s)))
+                Lf = max(Lf, min_look_ahead)
                 s_pos = path_spline.cur_s + Lf
 
                 # get target pose
@@ -207,7 +213,7 @@ def main():
     actual_state = []
     labels = []
     for integrator, model in configs:
-        actual_state = run_simulation(ax, steer, dt, integrator, model, steps)
+        actual_state = run_simulation(ax, steer, dt, integrator, model)
         all_results.append(actual_state)
         labels.append(f"{integrator.capitalize()} - {model.capitalize()}")
 
