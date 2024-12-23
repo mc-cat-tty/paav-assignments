@@ -5,10 +5,13 @@ from simulation import Simulation
 import pid
 import purepursuit
 import stanley
-# from mpc import *
+from mpc import *
 import cubic_spline_planner
 import math
 from enum import Enum, auto
+import matplotlib
+matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
+
 
 class Controller(Enum):
     PURE_PURSUIT = auto()
@@ -16,14 +19,14 @@ class Controller(Enum):
     MPC = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.STANLEY
+selected_controller: Controller = Controller.MPC
 dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 25.0
+target_speed = 20.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -114,7 +117,8 @@ def run_simulation(ax, steer, dt, integrator, model):
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
 
-    # casadi_model() #for MPC... TO-DO
+    if selected_controller == Controller.MPC:
+        casadi_model()
 
     total_error = 0
     step = 0
@@ -168,17 +172,16 @@ def run_simulation(ax, steer, dt, integrator, model):
                 steer = stanley_controller.compute_steering_angle(actual_pose, stanley_target, sim.vx)
 
             case Controller.MPC:
-                pass
                 # get future horizon targets pose
-                # targets = [ ]
-                # s_pos = path_spline.cur_s
-                # for i in range(N):
-                #     step_increment = (sim.vx)*dt
-                #     trg = point_transform(path_spline.calc_position(s_pos), actual_pose, sim.theta)
-                #     trg = [ trg[0], trg[1] ]
-                #     targets.append(trg)
-                #     s_pos += step_increment
-                # steer = opt_step(targets, sim)
+                targets = []
+                s_pos = path_spline.cur_s
+                for _ in range(N):
+                    trg = path_spline.calc_position(s_pos)
+                    trg_theta = path_spline.calc_yaw(s_pos)
+                    trg = [trg[0], trg[1], trg_theta]
+                    targets.append(trg)
+                    s_pos += sim.vx*dt
+                steer = opt_step(targets, sim)
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))

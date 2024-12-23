@@ -6,6 +6,7 @@ from casadi.tools import *
 T =  1.0 # Horizon length in seconds
 dt = 0.05 # Horizon timesteps
 N = int(T/dt) # Horizon total points
+F = None
 
 max_steer = 3.14  # Maximum steering angle in radians
 min_steer = -3.14  # Minimum steering angle in radians
@@ -35,7 +36,8 @@ def casadi_model():
     sxdot    = speed*cos(yaw)
     sydot    = speed*sin(yaw)
     yawdot   = (speed/L)*tan(steer)
-    speeddot = 0.0
+    # speeddot = speed * np.cos(yaw) / 1200
+    speeddot = 0
 
     # Concatenate vertically the expressions creating a row vector
     xdot = vertcat(sxdot, sydot, yawdot, speeddot)
@@ -48,7 +50,7 @@ def casadi_model():
     # Integrate the step with Explicit Euler
     IN = 1
     xj = x
-    for i in range(IN):
+    for _ in range(IN):
         fj = f(xj,u)
         xj += dt*fj/IN
 
@@ -76,14 +78,17 @@ def opt_step(target, state):
 
     # For every temporal step
     for k in range(nu):
-        X = F(X, vertcat(Us[k])) #Integrate the step
+        X = F(X, vertcat(Us[k]))  # Integrate the step
         gain_mult = 1
-        # give more importance to the last step using a bigger gain
+
+        # Give more importance to the last step using a bigger gain
         if(k == nu-1):
-            gain_mult=1 #You can use this multiplier as terminal cost
-        J += 100.0*gain_mult*(X[0]-target[k][0])**2 #x error cost 
-        J += 100.0*gain_mult*(X[1]-target[k][1])**2 #y error cost
-        J += 10.0*gain_mult*(X[2] - target[k][2])**2 #heading error cost
+            gain_mult=1 # You can use this multiplier as terminal cost
+
+        J += 100.0*gain_mult*(X[0]-target[k][0])**2  # x error cost 
+        J += 100.0*gain_mult*(X[1]-target[k][1])**2  # y error cost
+        J += 10.00*gain_mult*(X[2]-target[k][2])**2  # heading error cost
+    
     # G = X[index] #if you want to set a state to constrain in arg["lbg"] and arg["ubg"]. It can be ignored
 
 
