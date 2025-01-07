@@ -10,7 +10,6 @@ import cubic_spline_planner
 import math
 from enum import Enum, auto
 import matplotlib
-matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
 
 
 class Controller(Enum):
@@ -26,7 +25,7 @@ vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 20.0
+target_speed = 25.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
