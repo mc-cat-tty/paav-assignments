@@ -33,6 +33,9 @@ def casadi_model(sim: Simulation):
     Fz = sim.mass * 9.81      # Normal force
     alpha_f = steer - (speed_lat + sim.l_f * yaw_rate) / speed_long
     alpha_r = - (speed_lat - sim.l_r * yaw_rate) / speed_long
+    # self.alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
+    # self.alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
+
     
     Fzf = Fz * sim.l_r/sim.l_wb
     Fzr = Fz * sim.l_f/sim.l_wb
@@ -73,7 +76,7 @@ def opt_step(target, state):
     Us = MX.sym("U",nu) #steer control input
 
     # Initial conditions
-    x0 = [state.x, state.y, state.theta, state.vx, 0, 0]
+    x0 = [state.x, state.y, state.theta, state.vx, state.vy, state.r]
     X0 = MX(x0) # vector containing the initial state
 
     J = 0 # objective function that should be minimized by the nlp solver
