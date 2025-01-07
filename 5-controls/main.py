@@ -25,7 +25,7 @@ vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 24.0
+target_speed = 29.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -117,7 +117,7 @@ def run_simulation(ax, steer, dt, integrator, model):
     alpha_f_vals, alpha_r_vals = [], []  # Slip angles
 
     if selected_controller == Controller.MPC:
-        casadi_model()
+        casadi_model(sim)
 
     total_error = 0
     step = 0

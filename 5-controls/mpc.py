@@ -1,6 +1,7 @@
 from cubic_spline_planner import *
 from casadi import *
 from casadi.tools import *
+from simulation import Simulation
 
 # MPC time
 T =  1.0 # Horizon length in seconds
@@ -11,7 +12,7 @@ F = None
 max_steer = 3.14  # Maximum steering angle in radians
 min_steer = -3.14  # Minimum steering angle in radians
 
-def casadi_model():
+def casadi_model(sim: Simulation):
     global F
 
     # Control
@@ -20,28 +21,34 @@ def casadi_model():
     u = MX.sym("u", 1)
     steer = u[0]
 
-    # Constants - Model parameters
-    Lr = 1.42
-    Lf = 1.156
-    L = Lf + Lr
-    mass = 1200
-
     # State
-    x = MX.sym("x",4)
+    x = MX.sym("x", 6)
     sx    = x[0]  # position x
     sy    = x[1]  # position y
     yaw   = x[2]  # yaw
-    speed = x[3]
+    speed_long = x[3]
+    speed_lat = x[4]
+    yaw_rate = x[5]
+
+    Fz = sim.mass * 9.81      # Normal force
+    alpha_f = steer - (speed_lat + sim.l_f * yaw_rate) / speed_long
+    alpha_r = - (speed_lat - sim.l_r * yaw_rate) / speed_long
+    
+    Fzf = Fz * sim.l_r/sim.l_wb
+    Fzr = Fz * sim.l_f/sim.l_wb
+    Fyf = alpha_f * sim.Cf * Fzf
+    Fyr = alpha_r * sim.Cr * Fzr
 
     # ODE right hand side
-    sxdot    = speed*cos(yaw)  # vx
-    sydot    = speed*sin(yaw)  # vy
-    yawdot   = (speed/L)*tan(steer)  # yaw_rate
-    speeddot_x = sxdot / mass
-    speeddot_y = sydot / mass
+    sxdot    = speed_long*cos(yaw) - speed_lat*sin(yaw)  # vx
+    sydot    = speed_long*sin(yaw) + speed_lat*cos(yaw)  # vy
+    yawdot   = yaw_rate
+    speeddot_long = 0  # Since it acts just as lateral controller, long control provided by someone else
+    speeddot_lat = (Fyr + Fyf * cos(steer)) / sim.mass - speed_long * yaw_rate
+    yaw_rate_dot = (Fyf * sim.l_f * cos(steer) - Fyr * sim.l_r) / sim.I_z
 
     # Concatenate vertically the expressions creating a row vector
-    xdot = vertcat(sxdot, sydot, yawdot, speeddot_x)
+    xdot = vertcat(sxdot, sydot, yawdot, speeddot_long, speeddot_lat, yaw_rate_dot)
 
     # ODE right hand side function
     # as input are used the state and control inputs,
@@ -66,7 +73,7 @@ def opt_step(target, state):
     Us = MX.sym("U",nu) #steer control input
 
     # Initial conditions
-    x0 = [state.x, state.y, state.theta, state.vx]
+    x0 = [state.x, state.y, state.theta, state.vx, 0, 0]
     X0 = MX(x0) # vector containing the initial state
 
     J = 0 # objective function that should be minimized by the nlp solver
