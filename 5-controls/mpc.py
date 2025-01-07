@@ -16,14 +16,15 @@ def casadi_model():
 
     # Control
     # Create 1r-1c matrix containing control inputs. 
-    # Set steer as element
-    u = MX.sym("u",1)
+    # Set steer as the only input element
+    u = MX.sym("u", 1)
     steer = u[0]
 
     # Constants - Model parameters
-    Lr = 1.42 
+    Lr = 1.42
     Lf = 1.156
     L = Lf + Lr
+    mass = 1200
 
     # State
     x = MX.sym("x",4)
@@ -33,14 +34,14 @@ def casadi_model():
     speed = x[3]
 
     # ODE right hand side
-    sxdot    = speed*cos(yaw)
-    sydot    = speed*sin(yaw)
-    yawdot   = (speed/L)*tan(steer)
-    # speeddot = speed * np.cos(yaw) / 1200
-    speeddot = 0
+    sxdot    = speed*cos(yaw)  # vx
+    sydot    = speed*sin(yaw)  # vy
+    yawdot   = (speed/L)*tan(steer)  # yaw_rate
+    speeddot_x = sxdot / mass
+    speeddot_y = sydot / mass
 
     # Concatenate vertically the expressions creating a row vector
-    xdot = vertcat(sxdot, sydot, yawdot, speeddot)
+    xdot = vertcat(sxdot, sydot, yawdot, speeddot_x)
 
     # ODE right hand side function
     # as input are used the state and control inputs,
@@ -83,7 +84,7 @@ def opt_step(target, state):
 
         # Give more importance to the last step using a bigger gain
         if(k == nu-1):
-            gain_mult=1 # You can use this multiplier as terminal cost
+            gain_mult=2 # You can use this multiplier as terminal cost
 
         J += 100.0*gain_mult*(X[0]-target[k][0])**2  # x error cost 
         J += 100.0*gain_mult*(X[1]-target[k][1])**2  # y error cost
@@ -93,7 +94,7 @@ def opt_step(target, state):
 
 
     # Objective function and constraints
-    J += mtimes(Us.T,Us)*100000.0 #Consider to set this weight dependent on speed
+    J += mtimes(Us.T,Us) * 1500.0 * state.vx # Speed-dependent
 
     # NLP
     nlp = {'x':vertcat(Us), 'f':J}

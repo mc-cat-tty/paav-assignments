@@ -25,7 +25,7 @@ vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 25.0
+target_speed = 24.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -143,7 +143,7 @@ def run_simulation(ax, steer, dt, integrator, model):
         position_projected = path_spline.calc_position(path_spline.cur_s)
         prj = [ position_projected[0], position_projected[1] ]
         local_error = point_transform(prj, actual_position, sim.theta)
-        total_error += local_error[0]*local_error[0] + local_error[1]*local_error[1]
+        total_error += sqrt(local_error[0]*local_error[0] + local_error[1]*local_error[1])
 
         if(abs(local_error[1]) > 1.0):
             print("Lateral error is higher than 1.0... ending the simulation")
