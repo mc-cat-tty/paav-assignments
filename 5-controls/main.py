@@ -90,8 +90,8 @@ def point_transform(trg, pose, yaw):
     return local_trg
 
 def save_figure(fig):
-    global FIGS_PATH, FIGS_NAMES, FIGS_IDX
-
+    global FIGS_IDX
+    
     with open(join(getcwd(), FIGS_PATH, FIGS_NAMES[FIGS_IDX]), "wb") as fig_file:
         fig.savefig(fig_file)
     
