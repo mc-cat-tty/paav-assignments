@@ -16,16 +16,17 @@ class Controller(Enum):
     PURE_PURSUIT = auto()
     STANLEY = auto()
     MPC = auto()
+    NONE = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.MPC
+selected_controller: Controller = Controller.NONE
 dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 31.0
+target_speed = 15.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -70,11 +71,12 @@ def point_transform(trg, pose, yaw):
 
     return local_trg
 
-def plot_comparison(results, labels, title, xlabel, ylabel):
+def plot_comparison(results, labels, title, xlabel, ylabel, x_vals=None):
     """ Plot comparison of results for a specific state variable. """
     plt.figure(figsize=(10, 6))
     for i, result in enumerate(results):
-        plt.plot(result, label=labels[i])
+        if x_vals: plt.plot(x_vals[i], result, label=labels[i])
+        else: plt.plot(result, label=labels[i])
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -114,7 +116,10 @@ def run_simulation(ax, steer, dt, integrator, model):
 
     # Storage for state variables and slip angles
     x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals = [], [], [], [], [], []
-    alpha_f_vals, alpha_r_vals = [], []  # Slip angles
+    alpha_f_vals, alpha_r_vals, beta_vals = [], [], []  # Slip angles
+    delta_vals = []  # Steering angles
+    fy_vals, fy_slips = [], []
+    lat_errors, vel_errors, long_acc = [], [], []
 
     if selected_controller == Controller.MPC:
         casadi_model(sim)
@@ -131,7 +136,6 @@ def run_simulation(ax, steer, dt, integrator, model):
 
         # Calculate ax to track speed
         ax = long_control_pid.compute(target_speed, sim.vx, dt) # Exercise 1
-        steer = 0
 
         # Update actual frenet-frame position in the spline
         # aka longitudinal position and actual lateral error
@@ -143,7 +147,10 @@ def run_simulation(ax, steer, dt, integrator, model):
         position_projected = path_spline.calc_position(path_spline.cur_s)
         prj = [ position_projected[0], position_projected[1] ]
         local_error = point_transform(prj, actual_position, sim.theta)
-        total_error += sqrt(local_error[0]*local_error[0] + local_error[1]*local_error[1])
+        lat_error = sqrt(local_error[0]*local_error[0] + local_error[1]*local_error[1])
+        total_error += lat_error
+
+        vel_error = sim.vx - target_speed
 
         if(abs(local_error[1]) > 1.0):
             print("Lateral error is higher than 1.0... ending the simulation")
@@ -181,9 +188,13 @@ def run_simulation(ax, steer, dt, integrator, model):
                     targets.append(trg)
                     s_pos += sim.vx*dt
                 steer = opt_step(targets, sim)
+            
+            case Controller.NONE:
+                steer = 0
 
         # Make one step simulation via model integration
         sim.integrate(ax, float(steer))
+        beta = np.arctan(sim.vy/sim.vx)  # Side slip angle
         
         # Append each state to corresponding list
         x_vals.append(sim.x)
@@ -192,16 +203,22 @@ def run_simulation(ax, steer, dt, integrator, model):
         vx_vals.append(sim.vx)
         vy_vals.append(sim.vy)
         r_vals.append(sim.r)
+        alpha_f_vals.append(sim.alpha_f)
+        alpha_r_vals.append(sim.alpha_r)
+        delta_vals.append(steer)
+        beta_vals.append(beta)
+        fy_vals.append(sim.Fyf)
+        fy_slips.append(sim.alpha_f)
+        lat_errors.append(lat_error)
+        vel_errors.append(vel_error)
+        long_acc.append(ax)
 
-        # Calculate slip angles for front and rear tires
-        alpha_f = steer - np.arctan((sim.vy + sim.l_f * sim.r) / max(0.5, sim.vx))  # Front tire slip angle
-        alpha_r = -(np.arctan(sim.vy - sim.l_r * sim.r) / max(0.5, sim.vx))         # Rear tire slip angle
 
-        alpha_f_vals.append(alpha_f)
-        alpha_r_vals.append(alpha_r)
+    print(f"{total_error=}")
+    order = np.argsort(fy_slips)
+    fy_vals, fy_slips = np.array(fy_vals)[order], np.array(fy_slips)[order]
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, delta_vals, beta_vals, fy_vals, fy_slips, lat_errors, vel_errors, long_acc
 
-    print(total_error)
-    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals
 
 def main():
 
@@ -228,6 +245,16 @@ def main():
     r_results = [result[5] for result in all_results]
     alpha_f_results = [result[6] for result in all_results]
     alpha_r_results = [result[7] for result in all_results]
+    delta_results = [result[8] for result in all_results]
+    beta_results = [result[9] for result in all_results]
+    
+    fy_results = [result[10] for result in all_results]
+    fy_slips = [result[11] for result in all_results]
+
+    lat_errors = [result[12] for result in all_results]
+    vel_errors = [result[13] for result in all_results]
+    long_acc = [result[14] for result in all_results]
+
 
     # Plot comparisons for each state variable
     plot_trajectory(x_results, y_results, labels, path_spline)
@@ -237,6 +264,15 @@ def main():
     plot_comparison(r_results, labels, "Yaw Rate Comparison", "Time Step", "Yaw Rate (rad/s)")
     plot_comparison(alpha_f_results, labels, "Front Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Front")
     plot_comparison(alpha_r_results, labels, "Rear Slip Angle Comparison", "Time Step", "Slip Angle (rad) - Rear")
+
+    plot_comparison(delta_results, labels, "Steering Angle Comparison", "Time Step", "Steering Angle (rad)")
+    plot_comparison(beta_results, labels, "Side Slip Angle Comparison", "Time Step", "Side Slip Angle (rad)")
+    plot_comparison(fy_results, labels, "Lateral Tire Force Comparison", "Slip Angle", "Lateral Tire Force (N)", fy_slips)
+
+    plot_comparison(lat_errors, labels, "Lateral Error Comparison", "Time Step", "Lateral Error (m)")
+    plot_comparison(vel_errors, labels, "Velocity Error Comparison", "Time Step", "Velocity Error (m/s)")
+    plot_comparison(long_acc, labels, "Longitudinal Acceleration Comparison", "Time Step", "Longitudinal Acceleration (m/s^2)")
+
 
 if __name__ == "__main__":
     main()
