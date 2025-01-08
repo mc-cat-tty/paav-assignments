@@ -12,7 +12,7 @@ from enum import Enum, auto
 from os.path import join
 from os import getcwd
 
-FIGS_PATH = "results/ex2/speed-2/pure-pursuit"
+FIGS_PATH = "results/ex3/speed-max/mpc-linear-st"
 FIGS_NAMES = [
     "1-traj.png",
     "2-heading.png",
@@ -37,14 +37,14 @@ class Controller(Enum):
     NONE = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.PURE_PURSUIT
+selected_controller: Controller = Controller.MPC
 dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 20.0
+target_speed = 30.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -237,7 +237,7 @@ def run_simulation(ax, steer, dt, integrator, model):
         r_vals.append(sim.r)
         alpha_f_vals.append(sim.alpha_f)
         alpha_r_vals.append(sim.alpha_r)
-        delta_vals.append(steer)
+        delta_vals.append(float(steer))
         beta_vals.append(beta)
         fy_vals.append(sim.Fyf)
         fy_slips.append(sim.alpha_f)
