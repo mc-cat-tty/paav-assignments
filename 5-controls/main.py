@@ -9,8 +9,26 @@ from mpc import *
 import cubic_spline_planner
 import math
 from enum import Enum, auto
-import matplotlib
+from os.path import join
+from os import getcwd
 
+FIGS_PATH = "results/ex2/speed-2/pure-pursuit"
+FIGS_NAMES = [
+    "1-traj.png",
+    "2-heading.png",
+    "3-long-vel.png",
+    "4-lat-vel.png",
+    "5-yaw-rate.png",
+    "6-front-slip.png",
+    "7-rear-slip.png",
+    "8-steer.png",
+    "9-side-slip.png",
+    "10-lateral-force.png",
+    "11-lateral-error.png",
+    "12-velocity-error.png",
+    "13-long-accel.png"
+]
+FIGS_IDX = 0
 
 class Controller(Enum):
     PURE_PURSUIT = auto()
@@ -19,14 +37,14 @@ class Controller(Enum):
     NONE = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.NONE
+selected_controller: Controller = Controller.PURE_PURSUIT
 dt = 0.05             # Time step (s)
 ax = 0.0              # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 15.0
+target_speed = 20.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -71,8 +89,17 @@ def point_transform(trg, pose, yaw):
 
     return local_trg
 
+def save_figure(fig):
+    global FIGS_PATH, FIGS_NAMES, FIGS_IDX
+
+    with open(join(getcwd(), FIGS_PATH, FIGS_NAMES[FIGS_IDX]), "wb") as fig_file:
+        fig.savefig(fig_file)
+    
+    FIGS_IDX += 1
+
 def plot_comparison(results, labels, title, xlabel, ylabel, x_vals=None):
     """ Plot comparison of results for a specific state variable. """
+
     plt.figure(figsize=(10, 6))
     for i, result in enumerate(results):
         if x_vals: plt.plot(x_vals[i], result, label=labels[i])
@@ -82,7 +109,10 @@ def plot_comparison(results, labels, title, xlabel, ylabel, x_vals=None):
     plt.ylabel(ylabel)
     plt.legend()
     plt.grid(True)
+    fig = plt.gcf()
     plt.show()
+    save_figure(fig)
+
 
 def plot_trajectory(x_vals, y_vals, labels, path_spline):
     """ Plot 2D trajectory (x vs y) for all simulation configurations and path_spline trajectory. """
@@ -104,7 +134,9 @@ def plot_trajectory(x_vals, y_vals, labels, path_spline):
     plt.legend()
     plt.grid(True)
     plt.axis("equal")
+    fig = plt.gcf()
     plt.show()
+    save_figure(fig)
 
 def run_simulation(ax, steer, dt, integrator, model):
     """ Run a simulation with the given parameters and return all states. """
