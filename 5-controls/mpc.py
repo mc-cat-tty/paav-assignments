@@ -23,24 +23,35 @@ def casadi_model(sim: Simulation):
 
     # State
     x = MX.sym("x", 6)
-    sx    = x[0]  # position x
-    sy    = x[1]  # position y
-    yaw   = x[2]  # yaw
-    speed_long = x[3]
-    speed_lat = x[4]
-    yaw_rate = x[5]
+    sx, sy, yaw, speed_long, speed_lat, yaw_rate = vertsplit(x)
 
     Fz = sim.mass * 9.81      # Normal force
+
+    # NON LINEAR ST MODEL
+    # alpha_f = steer - np.arctan((speed_lat + sim.l_f * yaw_rate) / speed_long)
+    # alpha_r = - np.arctan((speed_lat - sim.l_r * yaw_rate) / speed_long)
+    # -----------------
+
+    # LINEAR ST MODEL
     alpha_f = steer - (speed_lat + sim.l_f * yaw_rate) / speed_long
     alpha_r = - (speed_lat - sim.l_r * yaw_rate) / speed_long
-    # self.alpha_f = delta - np.arctan((self.vy + self.l_f * self.r) / self.vx)
-    # self.alpha_r = - np.arctan((self.vy - self.l_r * self.r) / self.vx)
-
+    # -----------------
     
     Fzf = Fz * sim.l_r/sim.l_wb
     Fzr = Fz * sim.l_f/sim.l_wb
+
+    # Front and rear lateral forces
+    lateral_force_f = lambda Fz, alpha: Fz * sim.D * np.sin(sim.C * np.arctan(sim.B * alpha - sim.E * (sim.B * alpha - np.arctan(sim.B * alpha))))
+
+    # NON LINEAR ST MODEL
+    # Fyf = lateral_force_f(Fzf, alpha_f)
+    # Fyr = lateral_force_f(Fzr, alpha_r)
+    # -----------------
+
+    # LINEAR ST MODEL
     Fyf = alpha_f * sim.Cf * Fzf
     Fyr = alpha_r * sim.Cr * Fzr
+    # -----------------
 
     # ODE right hand side
     sxdot    = speed_long*cos(yaw) - speed_lat*sin(yaw)  # vx
@@ -104,7 +115,7 @@ def opt_step(target, state):
 
 
     # Objective function and constraints
-    J += mtimes(Us.T,Us) * 1500.0 * state.vx # Speed-dependent
+    J += mtimes(Us.T,Us) * (1000.0 + 100 * state.vx)    # Speed-dependent
 
     # NLP
     nlp = {'x':vertcat(Us), 'f':J}

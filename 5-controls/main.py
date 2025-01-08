@@ -25,7 +25,7 @@ vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 29.0
+target_speed = 31.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
