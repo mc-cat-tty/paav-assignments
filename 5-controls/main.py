@@ -12,7 +12,7 @@ from enum import Enum, auto
 from os.path import join
 from os import getcwd
 
-FIGS_PATH = "results/ex3/speed-max/mpc-linear-st"
+FIGS_PATH = "results/figures/ex3/speed-max/mpc-linear-st"
 FIGS_NAMES = [
     "1-traj.png",
     "2-heading.png",
@@ -44,7 +44,7 @@ vx = 0.0              # Initial longitudinal velocity
 steer = 0.0           # Constant steering angle (rad)
 
 # Control references
-target_speed = 30.0
+target_speed = 29.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
