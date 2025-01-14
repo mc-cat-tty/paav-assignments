@@ -24,10 +24,20 @@ import matplotlib
 from quintic_polynomials_planner import QuinticPolynomial 
 import cubic_spline_planner
 from params import *
+from time import time
+import multiprocessing
+from functools import partial
+import itertools
 
 SIM_LOOP = 500
 
 show_animation = True
+
+try: cpu_pool = multiprocessing.Pool(None)  # Auto-infer CPUs number
+except: pass
+
+RANGE_2 = np.arange(MIN_T, MAX_T, DT).tolist()
+RANGE_3 = np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE, TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S).tolist()
 
 
 class QuarticPolynomial:
@@ -93,15 +103,20 @@ class FrenetPath:
         self.ds = []
         self.c = []
 
-
 def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
     frenet_paths = []
+    
+    # CPU chunking test
+    # chunk_size = MAX_ROAD_WIDTH/2
+    # displacement = w_idx*chunk_size
+    # start_w = -MAX_ROAD_WIDTH + displacement
+    # end_w = min(MAX_ROAD_WIDTH, start_w+chunk_size)
 
     # generate path to each offset goal
-    for di in np.arange(-MAX_ROAD_WIDTH, MAX_ROAD_WIDTH, D_ROAD_W):
+    for di in np.arange(-MAX_ROAD_WIDTH, MAX_ROAD_WIDTH, D_ROAD_W).tolist():
 
         # Lateral motion planning
-        for Ti in np.arange(MIN_T, MAX_T, DT):
+        for Ti in RANGE_2:
             fp = FrenetPath()
 
             # lat_qp = quintic_polynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
@@ -114,8 +129,7 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
             fp.d_ddd = [lat_qp.calc_third_derivative(t) for t in fp.t]
 
             # Longitudinal motion planning (Velocity keeping)
-            for tv in np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE,
-                                TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S):
+            for tv in RANGE_3:
                 tfp = copy.deepcopy(fp)
                 lon_qp = QuarticPolynomial(s0, c_speed, c_accel, tv, 0.0, Ti)
 
@@ -137,6 +151,59 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
                 frenet_paths.append(tfp)
 
     return frenet_paths
+
+def calc_frenet_paths_inner(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0, di):
+    res = []
+    # Lateral motion planning
+    for Ti in np.arange(MIN_T, MAX_T, DT):
+        fp = FrenetPath()
+
+        lat_qp = QuinticPolynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
+
+        fp.t = [t for t in np.arange(0.0, Ti, DT)]
+        fp.d = [lat_qp.calc_point(t) for t in fp.t]
+        fp.d_d = [lat_qp.calc_first_derivative(t) for t in fp.t]
+        fp.d_dd = [lat_qp.calc_second_derivative(t) for t in fp.t]
+        fp.d_ddd = [lat_qp.calc_third_derivative(t) for t in fp.t]
+
+        # Longitudinal motion planning (Velocity keeping)
+        for tv in np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE,
+                            TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S):
+            tfp = copy.deepcopy(fp)
+            lon_qp = QuarticPolynomial(s0, c_speed, c_accel, tv, 0.0, Ti)
+
+            tfp.s = [lon_qp.calc_point(t) for t in fp.t]
+            tfp.s_d = [lon_qp.calc_first_derivative(t) for t in fp.t]
+            tfp.s_dd = [lon_qp.calc_second_derivative(t) for t in fp.t]
+            tfp.s_ddd = [lon_qp.calc_third_derivative(t) for t in fp.t]
+
+            Jp = sum(np.power(tfp.d_ddd, 2))  # square of jerk
+            Js = sum(np.power(tfp.s_ddd, 2))  # square of jerk
+
+            # square of diff from target speed
+            ds = (TARGET_SPEED - tfp.s_d[-1]) ** 2
+
+            tfp.cd = K_J * Jp + K_T * Ti + K_D * tfp.d[-1] ** 2
+            tfp.cv = K_J * Js + K_T * Ti + K_D * ds
+            tfp.cf = K_LAT * tfp.cd + K_LON * tfp.cv
+
+            res.append(tfp)
+
+    return res
+
+def calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
+    frenet_paths = []
+    _calc_frenet_paths_inner = partial(calc_frenet_paths_inner, c_speed, c_accel, c_d, c_d_d, c_d_dd, s0)
+
+    # generate path to each offset goal
+    frenet_paths = cpu_pool.map(
+        _calc_frenet_paths_inner,  # Function to be parallelized
+        np.arange(-MAX_ROAD_WIDTH, MAX_ROAD_WIDTH, D_ROAD_W)
+    )
+
+    flattened_list = list(itertools.chain.from_iterable(frenet_paths))
+    
+    return flattened_list
 
 
 def calc_global_paths(fplist, csp):
@@ -185,6 +252,19 @@ def check_collision(fp, ob):
 
     return True
 
+def check_collision_parallel(ob, fp):
+    if(len(ob[0]) == 0):
+        return fp
+    for i in range(len(ob[:, 0])):
+        d = [((ix - ob[i, 0]) ** 2 + (iy - ob[i, 1]) ** 2)
+             for (ix, iy) in zip(fp.x, fp.y)]
+
+        collision = any([di <= ROBOT_RADIUS ** 2 for di in d])
+
+        if collision:
+            return None
+
+    return fp
 
 def check_paths(fplist, ob):
     ok_ind = []
@@ -203,20 +283,46 @@ def check_paths(fplist, ob):
         # elif not check_collision(fplist[i], ob):
         #     print("collision checks failed")
         #     continue
+        
         if not check_collision(fplist[i], ob):
-            print("collision checks failed")
+            # print("Collision checks not passed")
             continue
+        
         ok_ind.append(i)
 
     return [fplist[i] for i in ok_ind]
 
+def check_paths_inner(ob, fp):
+    return fp if check_collision(fp, ob) else None
+
+def check_paths_parallel(fplist, ob):
+    _check_collision = partial(check_collision_parallel, ob)
+
+
+    collision_free_fp = cpu_pool.map(
+        _check_collision,
+        fplist
+    )
+
+    return list(
+        filter(
+            lambda x: x is not None,
+            collision_free_fp
+        )
+    )
 
 def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
-    fplist = calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0)
-    print("paths after frenet calc:",len(fplist))
+    start = time()
+    fplist = calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0)
+    print(f"{len(fplist)} paths after calc_frenet_paths_parallel in {time()-start}")
+
+    start = time()
     fplist = calc_global_paths(fplist, csp)
-    fplist = check_paths(fplist, ob)
-    print("paths after checks",len(fplist))
+    print(f"{len(fplist)} converted to global coordinates in {time()-start}")
+
+    start = time()
+    fplist = check_paths_parallel(fplist, ob)
+    print(f"{len(fplist)} paths after checks in {time()-start}")
 
     # find minimum cost path
     min_cost = float("inf")
@@ -319,6 +425,7 @@ def main():
             plt.pause(0.0001)
 
     print("Finish")
+    
     if show_animation:  # pragma: no cover
         plt.grid(True)
         plt.pause(0.0001)

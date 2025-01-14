@@ -22,7 +22,7 @@ class Controller(Enum):
     NONE = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.PURE_PURSUIT
+selected_controller: Controller = Controller.STANLEY
 
 # Simulation parameters
 dt = DT         # Time step (s)
@@ -170,8 +170,15 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     c_d_d = 0.0  # current lateral speed [m/s]
     c_d_dd = 0.0  # current lateral acceleration [m/s]
     s0 = 0.0  # current course position
+
+    start_x = sim.x
+    first_half_turn = True
+    step = 0
     
-    for step in range(steps):    
+    while sim.x <= start_x+1 or first_half_turn:
+        if sim.x < start_x-1: first_half_turn = False
+        step += 1
+
         # Print time
         print("Time:", step*dt)
 
