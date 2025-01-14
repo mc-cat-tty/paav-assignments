@@ -281,7 +281,7 @@ def main():
     c_d_dd = 0.0  # current lateral acceleration [m/s]
     s0 = 0.0  # current course position
 
-    area = 20.0  # animation area length [m]
+    area = 40.0  # animation area length [m]
 
     for i in range(SIM_LOOP):
         path = frenet_optimal_planning(

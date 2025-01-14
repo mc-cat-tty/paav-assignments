@@ -5,7 +5,7 @@ MAX_ACCEL = 10.0  # maximum acceleration [m/ss]
 MAX_CURVATURE = 2.0  # maximum curvature [1/m]
 MAX_ROAD_WIDTH = 5.0  # maximum road width [m]
 D_ROAD_W = 0.5  # road width sampling length [m]
-DT = 0.05  # time tick [s]
+DT = 0.2  # time tick [s]
 MAX_T = 5.0  # max prediction time [s]
 MIN_T = 4.5  # min prediction time [s]
 D_T_S = 0.5  # target speed sampling length [m/s]
@@ -14,7 +14,7 @@ ROBOT_RADIUS = 3.0  # robot radius [m]
 
 # Cost weights
 K_J = 0.1
-K_T = 0.1
+K_T = 1.0
 K_D = 1.0
 K_LAT = 1.0
 K_LON = 1.0

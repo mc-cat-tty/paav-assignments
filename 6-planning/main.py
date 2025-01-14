@@ -158,7 +158,6 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     delta_vals = []  # Steering angles
     fy_vals, fy_slips = [], []
     lat_errors, vel_errors, long_acc = [], [], []
-
     frenet_x, frenet_y = [], []
 
     if selected_controller == Controller.MPC:
@@ -171,9 +170,8 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
     c_d_d = 0.0  # current lateral speed [m/s]
     c_d_dd = 0.0  # current lateral acceleration [m/s]
     s0 = 0.0  # current course position
-
-    for step in range(steps):
     
+    for step in range(steps):    
         # Print time
         print("Time:", step*dt)
 
@@ -186,7 +184,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             path_spline, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob)
         
         if not frenet_path:
-            print("None available paths found from Frenet...")
+            print("No available paths found from Frenet...")
             break
 
         frenetpath_spline = cubic_spline_planner.Spline2D(frenet_path.x, frenet_path.y)
@@ -231,7 +229,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
             print("Lateral error: ", local_error[1])
             break
         
-                # Calculate steer to track path
+        # Calculate steer to track path
         match selected_controller:
             case Controller.PURE_PURSUIT:
                 # Compute the look-ahead distance
@@ -288,13 +286,13 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         lat_errors.append(lat_error)
         vel_errors.append(vel_error)
         long_acc.append(ax)
-
-
-        # Calculate slip angles for front and rear tires
         frenet_x.append(frenet_path.x[0])
         frenet_y.append(frenet_path.y[0])
 
-        return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, delta_vals, beta_vals, fy_vals, fy_slips, lat_errors, vel_errors, long_acc, frenet_x, frenet_y
+    order = np.argsort(fy_slips)
+    fy_vals, fy_slips = np.array(fy_vals)[order], np.array(fy_slips)[order]
+
+    return x_vals, y_vals, theta_vals, vx_vals, vy_vals, r_vals, alpha_f_vals, alpha_r_vals, delta_vals, beta_vals, fy_vals, fy_slips, lat_errors, vel_errors, long_acc, frenet_x, frenet_y
 
 def main():
 
