@@ -13,24 +13,7 @@ import frenet_optimal_trajectory as fp
 from enum import Enum, auto
 from os.path import join
 from os import getcwd
-
-FIGS_PATH = "results/figures/ex3/speed-max/mpc-linear-st"
-FIGS_NAMES = [
-    "1-traj.png",
-    "2-heading.png",
-    "3-long-vel.png",
-    "4-lat-vel.png",
-    "5-yaw-rate.png",
-    "6-front-slip.png",
-    "7-rear-slip.png",
-    "8-steer.png",
-    "9-side-slip.png",
-    "10-lateral-force.png",
-    "11-lateral-error.png",
-    "12-velocity-error.png",
-    "13-long-accel.png"
-]
-FIGS_IDX = 0
+from params import *
 
 class Controller(Enum):
     PURE_PURSUIT = auto()
@@ -42,15 +25,14 @@ class Controller(Enum):
 selected_controller: Controller = Controller.PURE_PURSUIT
 
 # Simulation parameters
-dt = 0.05         # Time step (s)
+dt = DT         # Time step (s)
+target_speed = TARGET_SPEED
+
 ax = 0.0            # Constant longitudinal acceleration (m/s^2)
 vx = 0.0              # Initial longitudinal velocity
 steer = 0.0      # Constant steering angle (rad)
 sim_time = 67.5      # Simulation duration in seconds
 steps = int(sim_time / dt)  # Simulation steps (30 seconds)
-
-# Control references
-target_speed = 15.0
 
 # Vehicle parameters
 lf = 1.156          # Distance from COG to front axle (m)
@@ -203,7 +185,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         frenet_path = fp.frenet_optimal_planning(
             path_spline, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob)
         
-        if(frenet_path is None):
+        if not frenet_path:
             print("None available paths found from Frenet...")
             break
 

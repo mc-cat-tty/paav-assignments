@@ -20,33 +20,12 @@ import copy
 import math
 import sys
 import pathlib
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import matplotlib
 from quintic_polynomials_planner import QuinticPolynomial 
 import cubic_spline_planner
+from params import *
 
 SIM_LOOP = 500
-
-# Parameter
-MAX_SPEED = 25.0  # maximum speed [m/s]
-MAX_ACCEL = 10.0  # maximum acceleration [m/ss]
-MAX_CURVATURE = 2.0  # maximum curvature [1/m]
-MAX_ROAD_WIDTH = 5.0  # maximum road width [m]
-D_ROAD_W = 0.5  # road width sampling length [m]
-DT = 0.2  # time tick [s]
-MAX_T = 5.0  # max prediction time [s]
-MIN_T = 4.5  # min prediction time [s]
-TARGET_SPEED = 25.0  # target speed [m/s]
-D_T_S = 0.5  # target speed sampling length [m/s]
-N_S_SAMPLE = 1  # sampling number of target speed
-ROBOT_RADIUS = 3.0  # robot radius [m]
-
-# cost weights
-K_J = 0.1
-K_T = 0.1
-K_D = 1.0
-K_LAT = 1.0
-K_LON = 1.0
 
 show_animation = True
 
@@ -280,9 +259,6 @@ def load_path(file_path):
 def main():
     print(__file__ + " start!!")
 
-    # way points
-    # wx = [0.0, 10.0, 20.5, 35.0, 70.5]
-    # wy = [0.0, -6.0, 5.0, 6.5, 0.0]
     # obstacle lists
     ob = np.array([[40.0, 0.0],
                     [100.0, -0.5],
@@ -292,6 +268,7 @@ def main():
                     [33.0, 200.0],
                     [-70.0, 171.0]
                     ])
+    
     # Load path and create a spline
     wx, wy = load_path("oval_trj.txt")
     tx, ty, tyaw, tc, csp = generate_target_course(wx, wy)
@@ -309,6 +286,10 @@ def main():
     for i in range(SIM_LOOP):
         path = frenet_optimal_planning(
             csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob)
+
+        if not path:
+            print("Feasable Frenet path not found")
+            break
 
         s0 = path.s[1]
         c_d = path.d[1]
