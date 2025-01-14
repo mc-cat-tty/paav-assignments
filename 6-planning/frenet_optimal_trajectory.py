@@ -22,7 +22,6 @@ import sys
 import pathlib
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import matplotlib
-matplotlib.use('TkAgg')  # Or 'Agg', 'Qt5Agg', etc.
 from quintic_polynomials_planner import QuinticPolynomial 
 import cubic_spline_planner
 
@@ -194,7 +193,7 @@ def calc_global_paths(fplist, csp):
 
 
 def check_collision(fp, ob):
-    if(len(ob[0]) is 0):
+    if(len(ob[0]) == 0):
         return True
     for i in range(len(ob[:, 0])):
         d = [((ix - ob[i, 0]) ** 2 + (iy - ob[i, 1]) ** 2)
