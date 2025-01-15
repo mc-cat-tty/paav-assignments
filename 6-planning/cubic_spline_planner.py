@@ -16,8 +16,8 @@ class Spline:
     def __init__(self, x, y):
         self.b, self.c, self.d, self.w = [], [], [], []
 
-        self.x = x
-        self.y = y
+        self.x = np.array(x)
+        self.y = np.array(y)
 
         self.nx = len(x)  # dimension of x
         h = np.diff(x)
@@ -37,6 +37,20 @@ class Spline:
             tb = (self.a[i + 1] - self.a[i]) / h[i] - h[i] * \
                 (self.c[i + 1] + 2.0 * self.c[i]) / 3.0
             self.b.append(tb)
+        
+        self.a = np.array(self.a)
+        self.b = np.array(self.b)
+        self.c = np.array(self.c)
+        self.d = np.array(self.d)
+
+    
+    def calc_vectorized(self, t_vec: np.array) -> np.array:
+        i = self.__search_index_vectorized(t_vec)
+
+        dx = t_vec - self.x[i]
+        result = self.a[i] + self.b[i] * dx + self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
+
+        return np.where((t_vec < self.x[0]) | (t_vec > self.x[-1]), 0.00001, result)
 
     def calc(self, t):
         u"""
@@ -67,6 +81,7 @@ class Spline:
 
         if t < self.x[0]:
             return None
+
         elif t > self.x[-1]:
             return None
 
@@ -74,6 +89,20 @@ class Spline:
         dx = t - self.x[i]
         result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
         return result
+    
+    def calcd_vectorized(self, t_vec):
+        u"""
+        Calc first derivative
+
+        if t is outside of the input x, return None
+        """
+
+        i = self.__search_index_vectorized(t_vec)
+        dx = t_vec - self.x[i]
+        result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
+
+        return np.where((t_vec < self.x[0]) | (t_vec > self.x[-1]), 0.00001, result)
+
 
     def calcdd(self, t):
         u"""
@@ -90,10 +119,13 @@ class Spline:
         result = 2.0 * self.c[i] + 6.0 * self.d[i] * dx
         return result
 
-    def __search_index(self, x):
+    def __search_index_vectorized(self, x):
         u"""
         search data segment index
         """
+        return np.searchsorted(self.x, x)
+    
+    def __search_index(self, x):
         return bisect.bisect(self.x, x) - 1
 
     def __calc_A(self, h):
@@ -154,11 +186,23 @@ class Spline2D:
         """
         if(s <= 0):
             s = 0
+        
         while(s >= self.s[-1]):
             s -= self.s[-1]
 
         x = self.sx.calc(s)
         y = self.sy.calc(s)
+
+        return x, y
+
+    def calc_position_vectorized(self, s_vec: np.array) -> tuple[np.array, np.array]:
+        u"""
+        calc position on a number of points
+        """
+        s_vec = np.where(s_vec <= 0, 0, s_vec)
+
+        x = self.sx.calc_vectorized(s_vec)
+        y = self.sy.calc_vectorized(s_vec)
 
         return x, y
 
@@ -191,6 +235,17 @@ class Spline2D:
 
         yaw = math.atan2(dy, dx)
         return yaw
+    
+    def calc_yaw_vectorized(self, s_vec: np.array) -> np.array:
+        u"""
+        calc yaw on a number of positions
+        """
+        dx = self.sx.calcd_vectorized(s_vec)
+        dy = self.sy.calcd_vectorized(s_vec)
+
+        yaws = np.atan2(dy, dx)
+        return yaws
+
 
     def calc_tangent(self, s):
         """

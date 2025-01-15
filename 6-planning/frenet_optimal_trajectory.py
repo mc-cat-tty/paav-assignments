@@ -29,7 +29,7 @@ import multiprocessing
 from functools import partial
 import itertools
 
-SIM_LOOP = 500
+SIM_LOOP = 2500
 
 show_animation = True
 
@@ -216,7 +216,7 @@ def calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
 
 
 def calc_global_paths_parallel(fplist, csp):
-    _calc_global_paths_inner = partial(calc_frenet_paths_inner, csp)
+    _calc_global_paths_inner = partial(calc_global_paths_inner, csp)
 
     return cpu_pool.map(
         _calc_global_paths_inner,
@@ -226,24 +226,27 @@ def calc_global_paths_parallel(fplist, csp):
 def calc_global_paths_inner(csp, fp):
     # calc global positions
 
-    s = np.array(
-        list(
-            map(
-                csp.calc_position,
-                fp.s
-            )
-        )
-    )
+    # s = np.array(
+    #     list(
+    #         map(
+    #             csp.calc_position,
+    #             fp.s
+    #         )
+    #     )
+    # )
 
-    x = s.T[0]
-    y = s.T[1]
+    s = np.array(fp.s)
 
-    yaw = np.array(
-        [*map(
-            csp.calc_yaw,
-            fp.s
-        )]
-    )
+    x, y = csp.calc_position_vectorized(s)
+
+    # yaw = np.array(
+    #     [*map(
+    #         csp.calc_yaw,
+    #         fp.s
+    #     )]
+    # )
+    
+    yaw = csp.calc_yaw_vectorized(s)
 
     d = np.array(fp.d)
 
@@ -370,7 +373,7 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
     print(f"{len(fplist)} paths after calc_frenet_paths_parallel in {time()-start}")
 
     start = time()
-    fplist = calc_global_paths_parallel(fplist, csp)
+    fplist = calc_global_paths(fplist, csp)
     print(f"{len(fplist)} converted to global coordinates in {time()-start}")
 
     start = time()
@@ -378,6 +381,7 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
     print(f"{len(fplist)} paths after checks in {time()-start}")
 
     # find minimum cost path
+    start = time()
     min_cost = float("inf")
     best_path = None
 
@@ -385,6 +389,8 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
         if min_cost >= fp.cf:
             min_cost = fp.cf
             best_path = fp
+    
+    print(f"Found min cost path in {time()-start}")
 
     return best_path
 
