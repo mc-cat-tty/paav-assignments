@@ -215,87 +215,111 @@ def calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
     return flattened_list
 
 
-def calc_global_paths(fplist, csp):
-    for fp in fplist:
-        # calc global positions
-        s = np.array(
-            list(
-                map(
-                    csp.calc_position,
-                    fp.s
-                )
+def calc_global_paths_parallel(fplist, csp):
+    _calc_global_paths_inner = partial(calc_frenet_paths_inner, csp)
+
+    return cpu_pool.map(
+        _calc_global_paths_inner,
+        fplist
+    )
+
+def calc_global_paths_inner(csp, fp):
+    # calc global positions
+
+    s = np.array(
+        list(
+            map(
+                csp.calc_position,
+                fp.s
             )
         )
+    )
 
-        x = s.T[0]
-        y = s.T[1]
+    x = s.T[0]
+    y = s.T[1]
 
-        yaw = np.array(
-            [*map(
-                csp.calc_yaw,
-                fp.s
-            )]
-        )
+    yaw = np.array(
+        [*map(
+            csp.calc_yaw,
+            fp.s
+        )]
+    )
 
-        d = np.array(fp.d)
+    d = np.array(fp.d)
 
-        yaw_phased = yaw + math.pi / 2.0
+    yaw_phased = yaw + math.pi / 2.0
 
-        cos = np.cos(yaw_phased)
-        sin = np.sin(yaw_phased)
+    cos = np.cos(yaw_phased)
+    sin = np.sin(yaw_phased)
 
-        fx = x + d * cos
-        fy = y + d * sin
-        
-        
-        # calc yaw and ds
-        dx = np.diff(fx)
-        dy = np.diff(fy)
+    fx = x + d * cos
+    fy = y + d * sin
+    
+    
+    # calc yaw and ds
+    dx = np.diff(fx)
+    dy = np.diff(fy)
 
-        yaw = np.atan2(dy, dx)
-        yaw += yaw[-1]
+    yaw = np.atan2(dy, dx)
+    yaw += yaw[-1]
 
-        ds = np.hypot(dx, dy)
-        ds += ds[-1]
+    ds = np.hypot(dx, dy)
+    ds += ds[-1]
 
-        # calc curvature
-        dyaw = np.diff(yaw)
+    # calc curvature
+    dyaw = np.diff(yaw)
 
-        fp.c = (dyaw/ds[:-1]).tolist()
-        fp.yaw = yaw.tolist()
-        fp.ds = ds.tolist()
-        fp.x = fx.tolist()
-        fp.y = fy.tolist()
+    fp.c = dyaw/ds[:-1]
+    fp.yaw = yaw
+    fp.ds = ds
+    fp.x = fx
+    fp.y = fy
+
+    return fp
+
+def calc_global_paths(fplist, csp):
+    for fp in fplist:
+        calc_global_paths_inner(csp, fp)
 
     return fplist
-
 
 def check_collision(fp, ob):
     if(len(ob[0]) == 0):
         return True
-    for i in range(len(ob[:, 0])):
-        d = [((ix - ob[i, 0]) ** 2 + (iy - ob[i, 1]) ** 2)
-             for (ix, iy) in zip(fp.x, fp.y)]
+    
+    obstacles_num = len(ob[:, 0])
 
-        collision = any([di <= ROBOT_RADIUS ** 2 for di in d])
+    for i in range(obstacles_num):
+        ob_x, ob_y = ob[i]
+        ob_s = np.ones((len(fp.x), 1)) * np.array([ob_x, ob_y], ndmin=2)
 
-        if collision:
-            return False
+        fp_s = np.array([fp.x, fp.y]).T
+        squared_diff = np.square(fp_s - ob_s).T
+        squared_dist = squared_diff[0] + squared_diff[1]
 
+        collision = np.any(squared_dist <= ROBOT_RADIUS ** 2)
+        if collision: return False
+    
     return True
+    
 
 def check_collision_parallel(ob, fp):
     if(len(ob[0]) == 0):
         return fp
-    for i in range(len(ob[:, 0])):
-        d = [((ix - ob[i, 0]) ** 2 + (iy - ob[i, 1]) ** 2)
-             for (ix, iy) in zip(fp.x, fp.y)]
+    
+    obstacles_num = len(ob[:, 0])
 
-        collision = any([di <= ROBOT_RADIUS ** 2 for di in d])
+    for i in range(obstacles_num):
+        ob_x, ob_y = ob[i]
+        ob_s = np.ones((len(fp.x), 1)) * np.array([ob_x, ob_y], ndmin=2)
 
-        if collision:
-            return None
+        fp_s = np.array([fp.x, fp.y]).T
+        squared_diff = np.square(fp_s - ob_s).T
+        squared_dist = squared_diff[0] + squared_diff[1]
 
+        collision = np.any(squared_dist <= ROBOT_RADIUS ** 2)
+        if collision: return None
+    
     return fp
 
 def check_paths(fplist, ob):
@@ -324,9 +348,6 @@ def check_paths(fplist, ob):
 
     return [fplist[i] for i in ok_ind]
 
-def check_paths_inner(ob, fp):
-    return fp if check_collision(fp, ob) else None
-
 def check_paths_parallel(fplist, ob):
     _check_collision = partial(check_collision_parallel, ob)
 
@@ -349,11 +370,11 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
     print(f"{len(fplist)} paths after calc_frenet_paths_parallel in {time()-start}")
 
     start = time()
-    fplist = calc_global_paths(fplist, csp)
+    fplist = calc_global_paths_parallel(fplist, csp)
     print(f"{len(fplist)} converted to global coordinates in {time()-start}")
 
     start = time()
-    fplist = check_paths(fplist, ob)
+    fplist = check_paths_parallel(fplist, ob)
     print(f"{len(fplist)} paths after checks in {time()-start}")
 
     # find minimum cost path
