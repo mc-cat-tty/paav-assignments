@@ -36,8 +36,11 @@ show_animation = True
 try: cpu_pool = multiprocessing.Pool(None)  # Auto-infer CPUs number
 except: pass
 
-RANGE_2 = np.arange(MIN_T, MAX_T, DT).tolist()
-RANGE_3 = np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE, TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S).tolist()
+RANGE_2 = np.arange(MIN_T, MAX_T, DT)
+RANGE_3 = np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE, TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S)
+
+LON_LAT_WEIGHTS_VECTOR = np.array([K_J, K_T, K_D])
+TOTAL_COST_WEIGHTS_VECTOR = np.array([K_LAT, K_LON])
 
 
 class QuarticPolynomial:
@@ -113,7 +116,7 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
     # end_w = min(MAX_ROAD_WIDTH, start_w+chunk_size)
 
     # generate path to each offset goal
-    for di in np.arange(-MAX_ROAD_WIDTH, MAX_ROAD_WIDTH, D_ROAD_W).tolist():
+    for di in np.arange(-MAX_ROAD_WIDTH, MAX_ROAD_WIDTH, D_ROAD_W):
 
         # Lateral motion planning
         for Ti in RANGE_2:
@@ -122,7 +125,7 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
             # lat_qp = quintic_polynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
             lat_qp = QuinticPolynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
 
-            fp.t = [t for t in np.arange(0.0, Ti, DT)]
+            fp.t = np.arange(0.0, Ti, DT).tolist()
             fp.d = [lat_qp.calc_point(t) for t in fp.t]
             fp.d_d = [lat_qp.calc_first_derivative(t) for t in fp.t]
             fp.d_dd = [lat_qp.calc_second_derivative(t) for t in fp.t]
@@ -130,7 +133,7 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
 
             # Longitudinal motion planning (Velocity keeping)
             for tv in RANGE_3:
-                tfp = copy.deepcopy(fp)
+                tfp = copy.copy(fp)
                 lon_qp = QuarticPolynomial(s0, c_speed, c_accel, tv, 0.0, Ti)
 
                 tfp.s = [lon_qp.calc_point(t) for t in fp.t]
@@ -138,13 +141,13 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
                 tfp.s_dd = [lon_qp.calc_second_derivative(t) for t in fp.t]
                 tfp.s_ddd = [lon_qp.calc_third_derivative(t) for t in fp.t]
 
-                Jp = sum(np.power(tfp.d_ddd, 2))  # square of jerk
-                Js = sum(np.power(tfp.s_ddd, 2))  # square of jerk
+                Jp = np.sum(np.power(tfp.d_ddd, 2))  # square of jerk
+                Js = np.sum(np.power(tfp.s_ddd, 2))  # square of jerk
 
                 # square of diff from target speed
-                ds = (TARGET_SPEED - tfp.s_d[-1]) ** 2
+                ds = np.square(TARGET_SPEED - tfp.s_d[-1])
 
-                tfp.cd = K_J * Jp + K_T * Ti + K_D * tfp.d[-1] ** 2
+                tfp.cd = K_J * Jp + K_T * Ti + K_D * np.square(tfp.d[-1])
                 tfp.cv = K_J * Js + K_T * Ti + K_D * ds
                 tfp.cf = K_LAT * tfp.cd + K_LON * tfp.cv
 
@@ -155,37 +158,43 @@ def calc_frenet_paths(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
 def calc_frenet_paths_inner(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0, di):
     res = []
     # Lateral motion planning
-    for Ti in np.arange(MIN_T, MAX_T, DT):
+    for Ti in RANGE_2:
         fp = FrenetPath()
 
         lat_qp = QuinticPolynomial(c_d, c_d_d, c_d_dd, di, 0.0, 0.0, Ti)
 
-        fp.t = [t for t in np.arange(0.0, Ti, DT)]
-        fp.d = [lat_qp.calc_point(t) for t in fp.t]
-        fp.d_d = [lat_qp.calc_first_derivative(t) for t in fp.t]
-        fp.d_dd = [lat_qp.calc_second_derivative(t) for t in fp.t]
-        fp.d_ddd = [lat_qp.calc_third_derivative(t) for t in fp.t]
+        fp.t = np.arange(0.0, Ti, DT)
+        fp.d = np.array([lat_qp.calc_point(t) for t in fp.t])
+        fp.d_d = np.array([lat_qp.calc_first_derivative(t) for t in fp.t])
+        fp.d_dd = np.array([lat_qp.calc_second_derivative(t) for t in fp.t])
+        fp.d_ddd = np.array([lat_qp.calc_third_derivative(t) for t in fp.t])
 
         # Longitudinal motion planning (Velocity keeping)
-        for tv in np.arange(TARGET_SPEED - D_T_S * N_S_SAMPLE,
-                            TARGET_SPEED + D_T_S * N_S_SAMPLE, D_T_S):
-            tfp = copy.deepcopy(fp)
+        for tv in RANGE_3:
+            tfp = copy.copy(fp)
             lon_qp = QuarticPolynomial(s0, c_speed, c_accel, tv, 0.0, Ti)
 
-            tfp.s = [lon_qp.calc_point(t) for t in fp.t]
-            tfp.s_d = [lon_qp.calc_first_derivative(t) for t in fp.t]
-            tfp.s_dd = [lon_qp.calc_second_derivative(t) for t in fp.t]
-            tfp.s_ddd = [lon_qp.calc_third_derivative(t) for t in fp.t]
+            tfp.s = np.array([lon_qp.calc_point(t) for t in fp.t])
+            tfp.s_d = np.array([lon_qp.calc_first_derivative(t) for t in fp.t])
+            tfp.s_dd = np.array([lon_qp.calc_second_derivative(t) for t in fp.t])
+            tfp.s_ddd = np.array([lon_qp.calc_third_derivative(t) for t in fp.t])
 
-            Jp = sum(np.power(tfp.d_ddd, 2))  # square of jerk
-            Js = sum(np.power(tfp.s_ddd, 2))  # square of jerk
+            Jp = np.sum(np.power(tfp.d_ddd, 2))  # square of jerk
+            Js = np.sum(np.power(tfp.s_ddd, 2))  # square of jerk
 
             # square of diff from target speed
-            ds = (TARGET_SPEED - tfp.s_d[-1]) ** 2
+            ds = np.square(TARGET_SPEED - tfp.s_d[-1])
 
-            tfp.cd = K_J * Jp + K_T * Ti + K_D * tfp.d[-1] ** 2
+            tfp.cd = K_J * Jp + K_T * Ti + K_D * np.square(tfp.d[-1])
             tfp.cv = K_J * Js + K_T * Ti + K_D * ds
             tfp.cf = K_LAT * tfp.cd + K_LON * tfp.cv
+
+            LAT_VECTOR = np.array([Jp, Ti, np.square(tfp.d[-1])])
+            LON_VECTOR = np.array([Js, Ti, ds])
+
+            tfp.cd = np.inner(LON_LAT_WEIGHTS_VECTOR, LAT_VECTOR)
+            tfp.cv = np.inner(LON_LAT_WEIGHTS_VECTOR, LON_VECTOR)
+            tfp.cf = np.inner(TOTAL_COST_WEIGHTS_VECTOR, np.array((tfp.cd, tfp.cv)))
 
             res.append(tfp)
 
@@ -208,32 +217,55 @@ def calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0):
 
 def calc_global_paths(fplist, csp):
     for fp in fplist:
-
         # calc global positions
-        for i in range(len(fp.s)):
-            ix, iy = csp.calc_position(fp.s[i])
-            if ix is None:
-                break
-            i_yaw = csp.calc_yaw(fp.s[i])
-            di = fp.d[i]
-            fx = ix + di * math.cos(i_yaw + math.pi / 2.0)
-            fy = iy + di * math.sin(i_yaw + math.pi / 2.0)
-            fp.x.append(fx)
-            fp.y.append(fy)
+        s = np.array(
+            list(
+                map(
+                    csp.calc_position,
+                    fp.s
+                )
+            )
+        )
 
+        x = s.T[0]
+        y = s.T[1]
+
+        yaw = np.array(
+            [*map(
+                csp.calc_yaw,
+                fp.s
+            )]
+        )
+
+        d = np.array(fp.d)
+
+        yaw_phased = yaw + math.pi / 2.0
+
+        cos = np.cos(yaw_phased)
+        sin = np.sin(yaw_phased)
+
+        fx = x + d * cos
+        fy = y + d * sin
+        
+        
         # calc yaw and ds
-        for i in range(len(fp.x) - 1):
-            dx = fp.x[i + 1] - fp.x[i]
-            dy = fp.y[i + 1] - fp.y[i]
-            fp.yaw.append(math.atan2(dy, dx))
-            fp.ds.append(math.hypot(dx, dy))
+        dx = np.diff(fx)
+        dy = np.diff(fy)
 
-        fp.yaw.append(fp.yaw[-1])
-        fp.ds.append(fp.ds[-1])
+        yaw = np.atan2(dy, dx)
+        yaw += yaw[-1]
+
+        ds = np.hypot(dx, dy)
+        ds += ds[-1]
 
         # calc curvature
-        for i in range(len(fp.yaw) - 1):
-            fp.c.append((fp.yaw[i + 1] - fp.yaw[i]) / fp.ds[i])
+        dyaw = np.diff(yaw)
+
+        fp.c = (dyaw/ds[:-1]).tolist()
+        fp.yaw = yaw.tolist()
+        fp.ds = ds.tolist()
+        fp.x = fx.tolist()
+        fp.y = fy.tolist()
 
     return fplist
 
@@ -321,7 +353,7 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
     print(f"{len(fplist)} converted to global coordinates in {time()-start}")
 
     start = time()
-    fplist = check_paths_parallel(fplist, ob)
+    fplist = check_paths(fplist, ob)
     print(f"{len(fplist)} paths after checks in {time()-start}")
 
     # find minimum cost path
