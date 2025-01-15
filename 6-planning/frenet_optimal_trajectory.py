@@ -185,9 +185,9 @@ def calc_frenet_paths_inner(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0, di):
             # square of diff from target speed
             ds = np.square(TARGET_SPEED - tfp.s_d[-1])
 
-            tfp.cd = K_J * Jp + K_T * Ti + K_D * np.square(tfp.d[-1])
-            tfp.cv = K_J * Js + K_T * Ti + K_D * ds
-            tfp.cf = K_LAT * tfp.cd + K_LON * tfp.cv
+            # tfp.cd = K_J * Jp + K_T * Ti + K_D * np.square(tfp.d[-1])
+            # tfp.cv = K_J * Js + K_T * Ti + K_D * ds
+            # tfp.cf = K_LAT * tfp.cd + K_LON * tfp.cv
 
             LAT_VECTOR = np.array([Jp, Ti, np.square(tfp.d[-1])])
             LON_VECTOR = np.array([Js, Ti, ds])
@@ -368,20 +368,20 @@ def check_paths_parallel(fplist, ob):
     )
 
 def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
-    start = time()
+    # start = time()
     fplist = calc_frenet_paths_parallel(c_speed, c_accel, c_d, c_d_d, c_d_dd, s0)
-    print(f"{len(fplist)} paths after calc_frenet_paths_parallel in {time()-start}")
+    # print(f"{len(fplist)} paths after calc_frenet_paths_parallel in {time()-start}")
 
-    start = time()
+    # start = time()
     fplist = calc_global_paths(fplist, csp)
-    print(f"{len(fplist)} converted to global coordinates in {time()-start}")
+    # print(f"{len(fplist)} converted to global coordinates in {time()-start}")
 
-    start = time()
+    # start = time()
     fplist = check_paths_parallel(fplist, ob)
-    print(f"{len(fplist)} paths after checks in {time()-start}")
+    # print(f"{len(fplist)} paths after checks in {time()-start}")
 
     # find minimum cost path
-    start = time()
+    # start = time()
     min_cost = float("inf")
     best_path = None
 
@@ -390,7 +390,7 @@ def frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, ob):
             min_cost = fp.cf
             best_path = fp
     
-    print(f"Found min cost path in {time()-start}")
+    # print(f"Found min cost path in {time()-start}")
 
     return best_path
 
