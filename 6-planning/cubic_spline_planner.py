@@ -46,6 +46,7 @@ class Spline:
     
     def calc_vectorized(self, t_vec: np.array) -> np.array:
         i = self.__search_index_vectorized(t_vec)
+        i = np.where((t_vec < self.x[0]) | (t_vec > self.x[-1]), 0, i)
 
         dx = t_vec - self.x[i]
         result = self.a[i] + self.b[i] * dx + self.c[i] * dx ** 2.0 + self.d[i] * dx ** 3.0
@@ -98,6 +99,8 @@ class Spline:
         """
 
         i = self.__search_index_vectorized(t_vec)
+        i = np.where((t_vec < self.x[0]) | (t_vec > self.x[-1]), 0, i)
+
         dx = t_vec - self.x[i]
         result = self.b[i] + 2.0 * self.c[i] * dx + 3.0 * self.d[i] * dx ** 2.0
 
@@ -123,7 +126,7 @@ class Spline:
         u"""
         search data segment index
         """
-        return np.searchsorted(self.x, x)
+        return np.searchsorted(self.x, x, side='right') - 1
     
     def __search_index(self, x):
         return bisect.bisect(self.x, x) - 1
