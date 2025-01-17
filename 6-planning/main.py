@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import matplotlib
 from simulation import Simulation
 import pid
 import purepursuit
@@ -14,6 +13,8 @@ from enum import Enum, auto
 from os.path import join
 from os import getcwd
 from params import *
+from time import time
+from matplotlib.patches import Circle
 
 class Controller(Enum):
     PURE_PURSUIT = auto()
@@ -23,6 +24,7 @@ class Controller(Enum):
 
 # Simulation parameters
 selected_controller: Controller = Controller.STANLEY
+save_figures: bool = True
 
 # Simulation parameters
 dt = DT         # Time step (s)
@@ -90,7 +92,8 @@ def point_transform(trg, pose, yaw):
     return local_trg
 
 def save_figure(fig):
-    return
+    if not save_figure: return
+
     global FIGS_IDX
     
     with open(join(getcwd(), FIGS_PATH, FIGS_NAMES[FIGS_IDX]), "wb") as fig_file:
@@ -124,16 +127,22 @@ def plot_trajectory(x_vals, y_vals, labels, path_spline, frenet_x_results, frene
 
     # Plot the frenet planner trajectory
     for i in range(len(frenet_x_results)):
-        plt.plot(frenet_x_results[i], frenet_y_results[i], linestyle="--", color="green")
+        plt.plot(frenet_x_results[i], frenet_y_results[i], linestyle="--", color="green", label="Frenet Path")
 
     # Plot the path_spline trajectory
     spline_x = [path_spline.calc_position(s)[0] for s in np.linspace(0, path_spline.s[-1], 1000)]
     spline_y = [path_spline.calc_position(s)[1] for s in np.linspace(0, path_spline.s[-1], 1000)]
-    plt.plot(spline_x, spline_y, label="Path Spline", linestyle="--", color="red")
+    plt.plot(spline_x, spline_y, label="Reference Path", linestyle="--", color="red")
 
     # Plot obstacles
     if(len(ob[0]) != 0):
         plt.scatter(ob[:, 0], ob[:, 1], c='black', label="Obstacles", marker='x')
+    
+    for obstacle in ob:
+        ax = plt.gca()
+        ax.add_patch(
+            Circle(obstacle, ROBOT_RADIUS, facecolor='None', alpha=0.5, linewidth=1.5, edgecolor='black')
+        )
     
     # Customize plot
     plt.title("2D Trajectory Comparison")
@@ -180,7 +189,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         step += 1
 
         # Print time
-        print("Time:", step*dt)
+        print("Simulated time:", step*dt)
 
         # Calculate ax to track speed
         ax = long_control_pid.compute(target_speed, sim.vx, dt)
@@ -204,10 +213,10 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         frenetpath_spline.update_current_s(actual_position)
 
         # get actual position projected on the path/spline
-        global_position_projected = path_spline.calc_position(path_spline.cur_s)
+        global_position_projected = frenetpath_spline.calc_position(frenetpath_spline.cur_s)
         prj = [ global_position_projected[0], global_position_projected[1] ]
-        local_error = point_transform(prj, actual_position, sim.theta)
-        lat_error = sqrt(local_error[0]*local_error[0] + local_error[1]*local_error[1])
+        local_error = point_transform(prj, actual_position, sim.theta)  # Local error wrt frenet path
+        lat_dist = sqrt(local_error[0]*local_error[0] + local_error[1]*local_error[1])  # Lat distance
         vel_error = sim.vx - target_speed
 
         local_position_projected = frenetpath_spline.calc_position(frenetpath_spline.cur_s)
@@ -290,7 +299,7 @@ def run_simulation(ax, steer, dt, integrator, model, steps=500):
         beta_vals.append(beta)
         fy_vals.append(sim.Fyf)
         fy_slips.append(sim.alpha_f)
-        lat_errors.append(lat_error)
+        lat_errors.append(lat_dist)
         vel_errors.append(vel_error)
         long_acc.append(ax)
         frenet_x.append(frenet_path.x[0])
@@ -312,10 +321,14 @@ def main():
     all_results = []
     actual_state = []
     labels = []
+
+    start_t = time()
     for integrator, model in configs:
         actual_state = run_simulation(ax, steer, dt, integrator, model, steps)
         all_results.append(actual_state)
         labels.append(f"{integrator.capitalize()} - {model.capitalize()}")
+
+    print(f"Wall-clock time: {time()-start_t}")
 
     # Separate each state for plotting
     x_results = [result[0] for result in all_results]
@@ -352,7 +365,7 @@ def main():
     plot_comparison(beta_results, labels, "Side Slip Angle Comparison", "Time Step", "Side Slip Angle (rad)")
     plot_comparison(fy_results, labels, "Lateral Tire Force Comparison", "Slip Angle", "Lateral Tire Force (N)", fy_slips)
 
-    plot_comparison(lat_errors, labels, "Lateral Error Comparison", "Time Step", "Lateral Error (m)")
+    plot_comparison(lat_errors, labels, "Lateral Error (wrt Frenet Path) Comparison", "Time Step", "Lateral Error (m)")
     plot_comparison(vel_errors, labels, "Velocity Error Comparison", "Time Step", "Velocity Error (m/s)")
     plot_comparison(long_acc, labels, "Longitudinal Acceleration Comparison", "Time Step", "Longitudinal Acceleration (m/s^2)")
 
