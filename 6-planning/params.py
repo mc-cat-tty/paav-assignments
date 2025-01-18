@@ -2,7 +2,7 @@
 DT = 0.05  # time tick [s]
 ROBOT_RADIUS = 3.0  # robot radius [m]
 
-TARGET_SPEED = 15.0  # target speed [m/s]
+TARGET_SPEED = 31.0  # target speed [m/s]
 
 MAX_SPEED = 25.0  # maximum speed [m/s]
 MAX_ACCEL = 10.0  # maximum acceleration [m/ss]
@@ -23,7 +23,7 @@ K_LON = 1.0
 
 
 # Figures rendering
-FIGS_PATH = "results/figures/ex1/speed-2/shorter-execution"
+FIGS_PATH = "results/figures/ex2/speed-max/mpc-linear-st"
 FIGS_NAMES = [
     "1-traj.png",
     "2-heading.png",

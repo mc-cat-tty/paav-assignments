@@ -23,7 +23,7 @@ class Controller(Enum):
     NONE = auto()
 
 # Simulation parameters
-selected_controller: Controller = Controller.STANLEY
+selected_controller: Controller = Controller.MPC
 save_figures: bool = True
 
 # Simulation parameters
