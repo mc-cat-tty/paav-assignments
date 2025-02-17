@@ -50,3 +50,19 @@ Academic Year: 2024/2025
         * pf_slam.txt: Hipert's 'best' particle filter implementation
         * res.txt: Nacho's 'prototype' particle filter implementation (feel free to use my result as reference)
 
+# Run in a containers w/ host Nvidia GPU
+Prerequisites:
+1. Install `nvidia-container-toolkit`
+2. Bypass access control of X server: `xhost +`
+3. Run
+```
+sudo docker run --rm -it \
+    --gpus all \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v $HOME/.Xauthority:/root/.Xauthority \
+    --env="NVIDIA_DRIVER_CAPABILITIES=all" \
+    --env="NVIDIA_VISIBLE_DEVICES=all" \
+    ubuntu:18.04
+```
+4. Install dependencies inside the container

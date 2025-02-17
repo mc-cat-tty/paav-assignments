@@ -1,4 +1,7 @@
 *.bag
+
 devel/
 install/
+build/
+
 src/CMakeLists.txt
