@@ -76,6 +76,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     normal_distribution<double> noise_dist_x(0, std[0]);
     normal_distribution<double> noise_dist_y(0, std[1]);
     normal_distribution<double> noise_dist_theta(0, std[2]);
+    const double displacement = velocity*delta_t;
 
     auto noise_distribution = MultivariateNormalDistribution<double>(
         noise_dist_x,
@@ -84,20 +85,26 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
         gen
     );
 
-    if (fabs(yaw_rate) < 0.00001) {
-        return;
+    if (fabs(yaw_rate) < 0.00001) {  // Moving forward
+        for (auto &particle : particles) {
+            auto pe = particle.eigenize();
+            pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
+            pe += noise_distribution.get_rand();  // Add noise
+            particle = pe;
+        }
     }
-
-    const double displacement = velocity*delta_t;
-
-    for (auto &particle : particles) {
-        auto pe = particle.eigenize();
-        pe += Eigen::Vector3d{0, 0, yaw_rate*delta_t};  // New yaw
-        pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
-        pe += noise_distribution.get_rand();  // Add noise
-        particle = pe;
+    else {  // Turning
+        for (auto &particle : particles) {
+            auto pe = particle.eigenize();
+            pe += Eigen::Vector3d{
+                (v / yaw_rate) * (sin(pe(2) + yaw_rate * dt) - sin(pe(2))),
+                (v / yaw_rate) * (cos(pe(2)) - cos(pe(2) + yaw_rate * dt)),
+                yaw_rate*delta_t
+            };
+            pe += noise_distribution.get_rand();  // Add noise
+            particle = pe;
+        }
     }
-
 }
 
 /*
