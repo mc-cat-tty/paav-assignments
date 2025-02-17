@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
   pcl_conversions
-  
 )
 
 find_package(PCL 1.2 REQUIRED)

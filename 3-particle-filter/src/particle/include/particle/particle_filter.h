@@ -94,8 +94,8 @@ public:
 	void prediction(double delta_t, double std[], double velocity, double yaw_rate);
 	
 	/**
-	 * dataAssociation Finds which observations correspond to which landmarks (likely by using
-	 *   a nearest-neighbors data association).
+	 * Finds which observations correspond to which landmarks (likely by using
+	 * a nearest-neighbors data association).
 	 * @param predicted Vector of predicted landmark observations
 	 * @param observations Vector of landmark observations
 	 */

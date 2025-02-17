@@ -97,8 +97,8 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
         for (auto &particle : particles) {
             auto pe = particle.eigenize();
             pe += Eigen::Vector3d{
-                (v / yaw_rate) * (sin(pe(2) + yaw_rate * dt) - sin(pe(2))),
-                (v / yaw_rate) * (cos(pe(2)) - cos(pe(2) + yaw_rate * dt)),
+                (velocity / yaw_rate) * (sin(pe(2) + yaw_rate * delta_t) - sin(pe(2))),
+                (velocity / yaw_rate) * (cos(pe(2)) - cos(pe(2) + yaw_rate * delta_t)),
                 yaw_rate*delta_t
             };
             pe += noise_distribution.get_rand();  // Add noise
@@ -107,24 +107,19 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     }
 }
 
-/*
-* TODO
-* This function associates the landmarks from the MAP to the landmarks from the OBSERVATIONS
-* Input:
-*  mapLandmark   - landmarks of the map
-*  observations  - observations of the car
-* Output:
-*  Associated observations to mapLandmarks (perform the association using the ids)
+/**
+* Finds which observations correspond to which landmarks (likely by using
+* a nearest-neighbors data association).
+* @param predicted Vector of predicted landmark observations
+* @param observations Vector of landmark observations
 */
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> mapLandmark, std::vector<LandmarkObs>& observations) {
-   //TODO
-   //TIP: Assign to observations[i].id the id of the landmark with the smallest euclidean distance
+void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
 
 }
 
+
 /*
-* TODO
-* This function transform a local (vehicle) observation into a global (map) coordinates
+* Transforms a local (vehicle) observation into a global (map) coordinates observation.
 * Input:
 *  observation   - A single landmark observation
 *  p             - A single particle
@@ -133,12 +128,17 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> mapLandmark, std::
 */
 LandmarkObs transformation(LandmarkObs observation, Particle p){
     LandmarkObs global;
-    
-    global.id = observation.id;
-    global.x = -1; //TODO
-    global.y = -1; //TODO
 
-    return global;
+    // Homogeneous transformation
+    Eigen::Matrix3d T;
+    T << cos(p.theta), -sin(p.theta), p.x,
+         sin(p.theta),  cos(p.theta), p.y,
+         0,           0,           1;
+
+    Eigen::Vector3d local_obs{observation.x, observation.y, 1.0};
+    auto global_obs = T * local_obs;
+
+    return {observation.id, global_obs(0), global_obs(1)};
 }
 
 /*
