@@ -85,25 +85,22 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
         gen
     );
 
-    if (fabs(yaw_rate) < 0.00001) {  // Moving forward
-        for (auto &particle : particles) {
-            auto pe = particle.eigenize();
+    for (auto &particle : particles) {
+        auto pe = particle.eigenize();
+
+        if (fabs(yaw_rate) < 0.00001) {  // Moving forward
             pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
-            pe += noise_distribution.get_rand();  // Add noise
-            particle = pe;
         }
-    }
-    else {  // Turning
-        for (auto &particle : particles) {
-            auto pe = particle.eigenize();
+        else {  // Turning
             pe += Eigen::Vector3d{
                 (velocity / yaw_rate) * (sin(pe(2) + yaw_rate * delta_t) - sin(pe(2))),
                 (velocity / yaw_rate) * (cos(pe(2)) - cos(pe(2) + yaw_rate * delta_t)),
                 yaw_rate*delta_t
             };
-            pe += noise_distribution.get_rand();  // Add noise
-            particle = pe;
         }
+
+        pe += noise_distribution.get_rand();  // Add noise
+        particle = pe;
     }
 }
 
@@ -114,7 +111,24 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
 * @param observations Vector of landmark observations
 */
 void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+    Eigen::MatrixXd predicted_matrix(predicted.size(), 2);
 
+    for (size_t i = 0; i < predicted.size(); ++i) {
+        predicted_matrix(i, 0) = predicted[i].x;
+        predicted_matrix(i, 1) = predicted[i].y;
+    }
+
+    for (auto &observation : observations) {
+        Eigen::Vector2d observation_vector(observation.x, observation.y);
+        Eigen::VectorXd squared_distances = (predicted_matrix.rowwise() - observation_vector.transpose()).rowwise().squaredNorm();
+
+        Eigen::Index nearest_index;
+        squared_distances.minCoeff(&nearest_index);
+
+        observation.id = predicted[nearest_index].id;
+    }
+
+    // A KD Tree can be used to speedup nn search
 }
 
 
@@ -151,23 +165,27 @@ LandmarkObs transformation(LandmarkObs observation, Particle p){
 * Output:
 *  Updated particle's weight (particles[i].weight *= w)
 */
-void ParticleFilter::updateWeights(double std_landmark[], 
-		std::vector<LandmarkObs> observations, Map map_landmarks) {
+void ParticleFilter::updateWeights(
+    double std_landmark[], 
+	std::vector<LandmarkObs> observations,
+    Map map_landmarks) {
 
-    //Creates a vector that stores tha map (this part can be improved)
+    // Creates a vector that stores the map (this part can be improved)
     std::vector<LandmarkObs> mapLandmark;
     for(int j=0;j<map_landmarks.landmark_list.size();j++){
         mapLandmark.push_back(LandmarkObs{map_landmarks.landmark_list[j].id_i,map_landmarks.landmark_list[j].x_f,map_landmarks.landmark_list[j].y_f});
     }
-    for(int i=0;i<particles.size();i++){
 
-        // Before applying the association we have to transform the observations in the global coordinates
+    for(auto &particle : particles){
         std::vector<LandmarkObs> transformed_observations;
-        //TODO: for each observation transform it (transformation function)
+        for (const auto &observation : observations) {
+            transformed_observations.push_back(transformation(observation, particle));
+        }
         
-        //TODO: perform the data association (associate the landmarks to the observations)
+        dataAssociation(mapLandmark, transformed_observations);
         
-        particles[i].weight = 1.0;
+        particle.weight = 1.0;
+
         // Compute the probability
 		//The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
 		//We compute basically the distance between the observed landmarks and the landmarks in range from the position of the particle
@@ -175,13 +193,15 @@ void ParticleFilter::updateWeights(double std_landmark[],
             double obs_x,obs_y,l_x,l_y;
             obs_x = transformed_observations[k].x;
             obs_y = transformed_observations[k].y;
+
             //get the associated landmark 
             for (int p = 0; p < mapLandmark.size(); p++) {
                 if (transformed_observations[k].id == mapLandmark[p].id) {
                     l_x = mapLandmark[p].x;
                     l_y = mapLandmark[p].y;
                 }
-            }	
+            }
+
 			// How likely a set of landmarks measurements are, given a prediction state of the car 
             double w = exp( -( pow(l_x-obs_x,2)/(2*pow(std_landmark[0],2)) + pow(l_y-obs_y,2)/(2*pow(std_landmark[1],2)) ) ) / ( 2*M_PI*std_landmark[0]*std_landmark[1] );
             particles[i].weight *= w;
