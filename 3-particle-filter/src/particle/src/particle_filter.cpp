@@ -19,20 +19,19 @@ static default_random_engine gen;
 *  nParticles - number of particles
 */
 void ParticleFilter::init_random(double std[], int nParticles) {
-    normal_distribution<double> dist_x(0, std[0]);
-    normal_distribution<double> dist_y(0, std[1]);
-    normal_distribution<double> dist_theta(0, std[2]);
+    normal_distribution<double> noise_dist_x(0, std[0]);
+    normal_distribution<double> noise_dist_y(0, std[1]);
+    normal_distribution<double> noise_dist_theta(0, std[2]);
 
-    std::default_random_engine gen;
-    auto dt_x = (map_x_boundaries.second-map_x_boundaries.first)/nParticles;
-    auto dt_y = (map_y_boundaries.second-map_y_boundaries.first)/nParticles;
-    auto dt_theta = (2*M_PI)/nParticles;
+    std::uniform_real_distribution<> dist_x(map_x_boundaries.first, map_x_boundaries.second);
+    std::uniform_real_distribution<> dist_y(map_y_boundaries.first, map_y_boundaries.second);
+    std::uniform_real_distribution<> dist_theta(-M_PI, M_PI);
 
     for (int i=0; i<nParticles; i++) {
         particles.emplace_back(
-            map_x_boundaries.first + dt_x*i,
-            map_y_boundaries.first + dt_y*i,
-            -M_PI + dt_theta*i
+            dist_x(gen) + noise_dist_x(gen),
+            dist_y(gen) + noise_dist_y(gen),
+            dist_theta(gen) + noise_dist_theta(gen)
         );
     }
 

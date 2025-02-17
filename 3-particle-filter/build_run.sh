@@ -1,3 +1,2 @@
-catkin_make
 source devel/setup.sh
-rosrun particle particle_node
+catkin_make && rosrun particle particle_node
