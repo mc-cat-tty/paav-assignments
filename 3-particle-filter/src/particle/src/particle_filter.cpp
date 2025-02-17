@@ -110,7 +110,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
 * @param predicted Vector of predicted landmark observations
 * @param observations Vector of landmark observations
 */
-void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+void dataAssociation(const std::vector<LandmarkObs>& predicted, std::vector<LandmarkObs>& observations) {
     Eigen::MatrixXd predicted_matrix(predicted.size(), 2);
 
     for (size_t i = 0; i < predicted.size(); ++i) {
@@ -184,11 +184,9 @@ void ParticleFilter::updateWeights(
         
         dataAssociation(mapLandmark, transformed_observations);
         
-        particle.weight = 1.0;
-
         // Compute the probability
-		//The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
-		//We compute basically the distance between the observed landmarks and the landmarks in range from the position of the particle
+		// The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
+		// We compute basically the distance between the observed landmarks and the landmarks in range from the position of the particle
         for(int k=0;k<transformed_observations.size();k++){
             double obs_x,obs_y,l_x,l_y;
             obs_x = transformed_observations[k].x;
@@ -204,7 +202,7 @@ void ParticleFilter::updateWeights(
 
 			// How likely a set of landmarks measurements are, given a prediction state of the car 
             double w = exp( -( pow(l_x-obs_x,2)/(2*pow(std_landmark[0],2)) + pow(l_y-obs_y,2)/(2*pow(std_landmark[1],2)) ) ) / ( 2*M_PI*std_landmark[0]*std_landmark[1] );
-            particles[i].weight *= w;
+            particle.weight *= w;
         }
 
     }    
