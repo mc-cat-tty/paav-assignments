@@ -14,7 +14,7 @@
 * TODO
 * Define the proper number of particles
 */
-#define NPARTICLES 0
+#define NPARTICLES 100
 #define circleID "circle_id"
 #define reflectorID "reflector_id"
 
@@ -22,7 +22,7 @@ using namespace std;
 using namespace lidar_obstacle_detection;
 
 
-Map map_mille;  
+Map map_mille;
 ParticleFilter pf;
 bool init_odom=false;
 Renderer renderer;
@@ -199,17 +199,19 @@ int main(int argc,char **argv)
         renderer.addCircle(0, 0, reflectorID+std::to_string(i), 0.2,1,1,1);
 
     // Initial position of the forklift
-    double GPS_x = 2.37256; 
+    double GPS_x = 2.37256;
     double GPS_y = 1.70077;
     double GPS_theta = -1.68385;
 
     // Insert one particle in the best particle set
     Particle p(GPS_x,GPS_y,GPS_theta);
     best_particles.push_back(p);
+
+    pf.set_map_size(map_mille.get_x_boundaries(), map_mille.get_y_boundaries());
     
     // Init the particle filter
-    pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
-    //pf.init_random(sigma_init,NPARTICLES);
+    // pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
+    pf.init_random(sigma_init, NPARTICLES);
 
     // Render all the particles
     for(int i=0;i<NPARTICLES;i++){

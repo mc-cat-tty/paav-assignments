@@ -30,6 +30,8 @@ class ParticleFilter {
 	
 	// Vector of weights of all particles
 	std::vector<double> weights;
+
+	std::pair<unsigned, unsigned> map_x_boundaries, map_y_boundaries;
 	
 public:
 	
@@ -38,10 +40,16 @@ public:
 
 	// Constructor
 	// @param M Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+	ParticleFilter() :
+			num_particles(0), is_initialized(false) {}
 
 	// Destructor
 	~ParticleFilter() {}
+
+	void set_map_size(std::pair<unsigned, unsigned> map_x_boundaries, std::pair<unsigned, unsigned> map_y_boundaries) {
+		this->map_x_boundaries = map_x_boundaries;
+		this->map_y_boundaries = map_y_boundaries;
+	}
 
 	/**
 	 * init Initializes particle filter by initializing particles to Gaussian

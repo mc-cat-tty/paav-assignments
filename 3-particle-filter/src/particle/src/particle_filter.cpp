@@ -10,17 +10,33 @@
 #include "particle/particle_filter.h"
 using namespace std;
 
-static  default_random_engine gen;
+static default_random_engine gen;
 
 /*
-* TODO
 * This function initialize randomly the particles
 * Input:
 *  std - noise that might be added to the position
 *  nParticles - number of particles
 */
-void ParticleFilter::init_random(double std[],int nParticles) {
+void ParticleFilter::init_random(double std[], int nParticles) {
+    normal_distribution<double> dist_x(0, std[0]);
+    normal_distribution<double> dist_y(0, std[1]);
+    normal_distribution<double> dist_theta(0, std[2]);
 
+    std::default_random_engine gen;
+    auto dt_x = (map_x_boundaries.second-map_x_boundaries.first)/nParticles;
+    auto dt_y = (map_y_boundaries.second-map_y_boundaries.first)/nParticles;
+    auto dt_theta = (2*M_PI)/nParticles;
+
+    for (int i=0; i<nParticles; i++) {
+        particles.emplace_back(
+            map_x_boundaries.first + dt_x*i,
+            map_y_boundaries.first + dt_y*i,
+            -M_PI + dt_theta*i
+        );
+    }
+
+    is_initialized = true;
 }
 
 /*

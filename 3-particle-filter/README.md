@@ -61,6 +61,7 @@ sudo docker run --rm -it \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v $HOME/.Xauthority:/root/.Xauthority \
+    -v .:/home/paav-assignments \            
     --env="NVIDIA_DRIVER_CAPABILITIES=all" \
     --env="NVIDIA_VISIBLE_DEVICES=all" \
     ubuntu:18.04
