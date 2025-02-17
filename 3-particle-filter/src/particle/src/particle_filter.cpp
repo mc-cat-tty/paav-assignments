@@ -7,16 +7,22 @@
 #include <sstream>
 #include <string>
 #include <iterator>
+#include <Eigen/Core>
 #include "particle/particle_filter.h"
+#include "particle/helper_functions.h"
+
 using namespace std;
 
 static default_random_engine gen;
 
-/*
-* This function initialize randomly the particles
-* Input:
-*  std - noise that might be added to the position
-*  nParticles - number of particles
+
+
+/**
+* Initializes particle filter by randomly distributing the particles 
+* around the map.
+* @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
+*   standard deviation of yaw [rad]]
+* @param nParticles Number of particles used by the algorithm
 */
 void ParticleFilter::init_random(double std[], int nParticles) {
     normal_distribution<double> noise_dist_x(0, std[0]);
@@ -27,7 +33,7 @@ void ParticleFilter::init_random(double std[], int nParticles) {
     std::uniform_real_distribution<> dist_y(map_y_boundaries.first, map_y_boundaries.second);
     std::uniform_real_distribution<> dist_theta(-M_PI, M_PI);
 
-    for (int i=0; i<nParticles; i++) {
+    for (int i=0; i<nParticles; ++i) {
         particles.emplace_back(
             dist_x(gen) + noise_dist_x(gen),
             dist_y(gen) + noise_dist_y(gen),
@@ -57,32 +63,41 @@ void ParticleFilter::init(double x, double y, double theta, double std[],int nPa
     is_initialized=true;
 }
 
-/*
-* TODO
-* The predict phase uses the state estimate from the previous timestep to produce an estimate of the state at the current timestep
-* Input:
-*  delta_t  - time elapsed beetween measurements
-*  std_pos  - noise that might be added to the position
-*  velocity - velocity of the vehicle
-*  yaw_rate - current orientation
-* Output:
-*  Updated x,y,theta position
+/**
+* Predicts the state for the next time step using the process model.
+* @param delta_t Time between time step t and t+1 in measurements [s]
+* @param std_pos[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
+*   standard deviation of yaw [rad]]
+* @param velocity Velocity of car from t to t+1 [m/s]
+* @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 */
-void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
+void ParticleFilter::prediction(double delta_t, double std[], double velocity, double yaw_rate) {
     //for each particle
-        double x,y,theta;
-        if (fabs(yaw_rate) < 0.00001) {
-            //TODO
-        }else{ 
-            //TODO
+    normal_distribution<double> noise_dist_x(0, std[0]);
+    normal_distribution<double> noise_dist_y(0, std[1]);
+    normal_distribution<double> noise_dist_theta(0, std[2]);
 
-        }   
-        normal_distribution<double> dist_x(0, std_pos[0]); //the random noise cannot be negative in this case
-        normal_distribution<double> dist_y(0, std_pos[1]);
-        normal_distribution<double> dist_theta(0, std_pos[2]);
-        //TODO: add the computed noise to the current particles position (x,y,theta)
+    auto noise_distribution = MultivariateNormalDistribution<double>(
+        noise_dist_x,
+        noise_dist_y,
+        noise_dist_theta,
+        gen
+    );
 
-	//}
+    if (fabs(yaw_rate) < 0.00001) {
+        return;
+    }
+
+    const double displacement = velocity*delta_t;
+
+    for (auto &particle : particles) {
+        auto pe = particle.eigenize();
+        pe += Eigen::Vector3d{0, 0, yaw_rate*delta_t};  // New yaw
+        pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
+        pe += noise_distribution.get_rand();  // Add noise
+        particle = pe;
+    }
+
 }
 
 /*

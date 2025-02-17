@@ -2,6 +2,7 @@
 #define PARTICLE_FILTER_H_
 
 #include "particle/helper_functions.h"
+#include <Eigen/Core>
 
 struct Particle {
 
@@ -15,7 +16,16 @@ struct Particle {
 	std::vector<double> sense_y;
 
 	Particle(){x = y = theta = 0.0;}
-	Particle(double x, double y, double theta) : x(x), y(y), theta(theta) { }
+	Particle(double x, double y, double theta) : x(x), y(y), theta(theta) {}
+
+	Eigen::Vector3d eigenize() const { return {x, y, theta}; }
+
+	Particle& operator=(const Eigen::Vector3d& vec) {
+        x = vec(0);
+        y = vec(1);
+        theta = vec(2);
+        return *this;
+    }
 };
 
 
@@ -63,8 +73,8 @@ public:
 	 */
 	void init(double x, double y, double theta, double std[],int nParticles);
 
-		/**
-	 * init Initializes particle filter by randomly distributing the particles 
+	/**
+	 * Initializes particle filter by randomly distributing the particles 
 	 * around the map.
 	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
@@ -74,15 +84,14 @@ public:
 
 
 	/**
-	 * prediction Predicts the state for the next time step
-	 *   using the process model.
+	 * Predicts the state for the next time step using the process model.
 	 * @param delta_t Time between time step t and t+1 in measurements [s]
-	 * @param std_pos[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
+	 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 	 *   standard deviation of yaw [rad]]
 	 * @param velocity Velocity of car from t to t+1 [m/s]
 	 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 	 */
-	void prediction(double delta_t, double std_pos[], double velocity, double yaw_rate);
+	void prediction(double delta_t, double std[], double velocity, double yaw_rate);
 	
 	/**
 	 * dataAssociation Finds which observations correspond to which landmarks (likely by using

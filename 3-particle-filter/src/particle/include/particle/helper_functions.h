@@ -6,6 +6,8 @@
 #include <fstream>
 #include <math.h>
 #include <vector>
+#include <random>
+#include <Eigen/Core>
 #include "particle/map.h"
 
 /*
@@ -231,5 +233,28 @@ inline bool read_landmark_data(std::string filename, std::vector<LandmarkObs>& o
 	}
 	return true;
 }
+
+template<typename T>
+struct MultivariateNormalDistribution {
+	std::normal_distribution<T> &dist_x, &dist_y, &dist_theta;
+	std::default_random_engine &gen;
+
+	explicit MultivariateNormalDistribution(
+		std::normal_distribution<T> &dist_x,
+		std::normal_distribution<T> &dist_y,
+		std::normal_distribution<T> &dist_theta,
+		std::default_random_engine &gen
+	) :
+		dist_x(dist_x), dist_y(dist_y), dist_theta(dist_theta), gen(gen) {}
+
+	Eigen::Vector3d get_rand() {
+		return {
+			dist_x(gen),
+			dist_y(gen),
+			dist_theta(gen)
+		};
+
+	}
+};
 
 #endif /* HELPER_FUNCTIONS_H_ */
