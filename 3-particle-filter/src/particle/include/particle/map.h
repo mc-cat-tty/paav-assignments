@@ -17,16 +17,17 @@ public:
 
 	std::vector<single_landmark_s> landmark_list ; // List of landmarks in the map
 
-	std::pair<unsigned, unsigned> get_x_boundaries() const {
+	std::pair<float, float> get_x_boundaries() const {
 		auto cmp_x = [](const single_landmark_s& a, const single_landmark_s& b) { return a.x_f < b.x_f; };
 
 		auto min_x = std::min_element(landmark_list.begin(), landmark_list.end(), cmp_x)->x_f;
 		auto max_x = std::max_element(landmark_list.begin(), landmark_list.end(), cmp_x)->x_f;
+		std::cout << min_x << std::endl;
 
 		return std::make_pair(min_x, max_x);
 	}
 
-	std::pair<unsigned, unsigned> get_y_boundaries() const {
+	std::pair<float, float> get_y_boundaries() const {
 		auto cmp_y = [](const single_landmark_s& a, const single_landmark_s& b) { return a.y_f < b.y_f; };
 
 		auto min_y = std::min_element(landmark_list.begin(), landmark_list.end(), cmp_y)->y_f;

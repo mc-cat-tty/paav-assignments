@@ -8,6 +8,7 @@
 #include <vector>
 #include <random>
 #include <Eigen/Core>
+#include <iostream>
 #include "particle/map.h"
 
 /*
@@ -256,5 +257,31 @@ struct MultivariateNormalDistribution {
 
 	}
 };
+
+struct TraceFn {
+	std::string fn_name;
+
+	TraceFn(std::string fn_name) : fn_name(fn_name) {
+		std::cout << "Enter: " << fn_name << std::endl;
+	}
+
+	~TraceFn() {
+		std::cout << "Exit: " << fn_name << std::endl;
+	}
+};
+
+#define TRACE_FN TraceFn(__func__);
+
+class TraceCheckpoint {
+	inline static unsigned num = 0;
+
+	public:
+	TraceCheckpoint() {
+		std::cout << "Checkpoint #" << num << std::endl; 
+		++num;
+	}
+};
+
+#define TRACE_CHECKPOINT TraceCheckpoint();
 
 #endif /* HELPER_FUNCTIONS_H_ */

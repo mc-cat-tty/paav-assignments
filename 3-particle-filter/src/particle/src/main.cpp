@@ -4,6 +4,7 @@
 #include <iostream>
 #include <math.h>
 #include "particle/particle_filter.h"
+#include "particle/helper_functions.h"
 #include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl/common/transforms.h>
@@ -14,7 +15,7 @@
 * TODO
 * Define the proper number of particles
 */
-#define NPARTICLES 100
+#define NPARTICLES 1000
 #define circleID "circle_id"
 #define reflectorID "reflector_id"
 
@@ -97,7 +98,6 @@ void OdomCb(const nav_msgs::Odometry::ConstPtr& msg){
 
 // This functions processes the point cloud (Update phase)
 void PointCloudCb(const sensor_msgs::PointCloud2ConstPtr& cloud_msg){
-
     // Define the timers for loggin the execution time
     static std::chrono::time_point<std::chrono::high_resolution_clock> t_start, t_end ;
     t_start = std::chrono::high_resolution_clock::now();
@@ -130,7 +130,9 @@ void PointCloudCb(const sensor_msgs::PointCloud2ConstPtr& cloud_msg){
     pf.updateWeights(sigma_landmark, noisy_observations, map_mille);
 
     // Resample the particles
+    // TRACE_CHECKPOINT
     pf.resample();
+    // TRACE_CHECKPOINT
 
     // Calculate and output the average weighted error of the particle filter over all time steps so far.
     Particle best_particle;
@@ -143,19 +145,25 @@ void PointCloudCb(const sensor_msgs::PointCloud2ConstPtr& cloud_msg){
         }
     }
     best_particles.push_back(best_particle);
+    // TRACE_CHECKPOINT
+
 
     // Show the particles in the map
     showPCstatus(cloud_particles,particles);
     renderer.removeShape(circleID+std::to_string(NPARTICLES+1));
     renderer.addCircle(best_particles.back().x, best_particles.back().y, circleID+std::to_string(NPARTICLES+1), 0.3,1,0,0);
+    // TRACE_CHECKPOINT
+
 
     // Log the execution time
     t_end = std::chrono::high_resolution_clock::now();
     double delta_t = (std::chrono::duration<double, std::milli>(t_end-t_start).count())/1000;
     // Write the results in a file
     myfile<< best_particle.x<<" "<< best_particle.y<<" "<<delta_t<<'\n';
+    // TRACE_CHECKPOINT
 
     renderer.SpinViewerOnce();
+    // TRACE_CHECKPOINT
 }
 
 

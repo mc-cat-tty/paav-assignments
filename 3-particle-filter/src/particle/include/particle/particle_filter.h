@@ -41,7 +41,7 @@ class ParticleFilter {
 	// Vector of weights of all particles
 	std::vector<double> weights;
 
-	std::pair<unsigned, unsigned> map_x_boundaries, map_y_boundaries;
+	std::pair<float, float> map_x_boundaries, map_y_boundaries;
 	
 public:
 	
@@ -56,7 +56,7 @@ public:
 	// Destructor
 	~ParticleFilter() {}
 
-	void set_map_size(std::pair<unsigned, unsigned> map_x_boundaries, std::pair<unsigned, unsigned> map_y_boundaries) {
+	void set_map_size(std::pair<float, float> map_x_boundaries, std::pair<float, float> map_y_boundaries) {
 		this->map_x_boundaries = map_x_boundaries;
 		this->map_y_boundaries = map_y_boundaries;
 	}
@@ -105,8 +105,8 @@ public:
 			Map map_landmarks);
 	
 	/**
-	 * resample Resamples from the updated set of particles to form
-	 *   the new set of particles.
+	 * Resamples from the updated set of particles to form
+	 * the new set of particles.
 	 */
 	void resample();
 

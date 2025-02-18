@@ -29,9 +29,12 @@ void ParticleFilter::init_random(double std[], int nParticles) {
     normal_distribution<double> noise_dist_y(0, std[1]);
     normal_distribution<double> noise_dist_theta(0, std[2]);
 
-    std::uniform_real_distribution<> dist_x(map_x_boundaries.first, map_x_boundaries.second);
-    std::uniform_real_distribution<> dist_y(map_y_boundaries.first, map_y_boundaries.second);
-    std::uniform_real_distribution<> dist_theta(-M_PI, M_PI);
+    std::uniform_real_distribution<double> dist_x(map_x_boundaries.first, map_x_boundaries.second);
+    std::uniform_real_distribution<double> dist_y(map_y_boundaries.first, map_y_boundaries.second);
+    std::uniform_real_distribution<double> dist_theta(-M_PI, M_PI);
+    
+    std::cout << map_x_boundaries.first << " " << map_x_boundaries.second << std::endl;
+    std::cout << map_y_boundaries.first << " " << map_y_boundaries.second << std::endl;
 
     for (int i=0; i<nParticles; ++i) {
         particles.emplace_back(
@@ -72,7 +75,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[],int nPa
 * @param yaw_rate Yaw rate of car from t to t+1 [rad/s]
 */
 void ParticleFilter::prediction(double delta_t, double std[], double velocity, double yaw_rate) {
-    //for each particle
     normal_distribution<double> noise_dist_x(0, std[0]);
     normal_distribution<double> noise_dist_y(0, std[1]);
     normal_distribution<double> noise_dist_theta(0, std[2]);
@@ -169,7 +171,7 @@ void ParticleFilter::updateWeights(
     double std_landmark[], 
 	std::vector<LandmarkObs> observations,
     Map map_landmarks) {
-
+    
     // Creates a vector that stores the map (this part can be improved)
     std::vector<LandmarkObs> mapLandmark;
     for(int j=0;j<map_landmarks.landmark_list.size();j++){
@@ -208,25 +210,36 @@ void ParticleFilter::updateWeights(
     }    
 }
 
-/*
-* TODO
-* This function resamples the set of particles by repopulating the particles using the weight as metric
+/**
+* Resamples from the updated set of particles to form
+* the new set of particles.
 */
 void ParticleFilter::resample() {
-    
-    uniform_int_distribution<int> dist_distribution(0,num_particles-1);
-    double beta  = 0.0;
-    vector<double> weights;
-    int index = dist_distribution(gen);
     vector<Particle> new_particles;
 
-    for(int i=0;i<num_particles;i++)
-        weights.push_back(particles[i].weight);
-																
-    float max_w = *max_element(weights.begin(), weights.end());
-    uniform_real_distribution<double> uni_dist(0.0, max_w);
+    double beta  = 0.0;
+    uniform_int_distribution<int> dist_distribution(0, particles.size()-1);
+    int index = dist_distribution(gen) % particles.size();
 
-    //TODO write here the resampling technique (feel free to use the above variables)
+    vector<double> weights;
+    for(const auto &particle : particles) {
+        weights.push_back(particle.weight);
+    }
+
+    float max_w = *std::max_element(weights.begin(), weights.end());
+    uniform_real_distribution<double> weight_uni_dist(0.0, max_w);
+
+    // Resempling wheel
+    for(const auto &_ : particles) {
+        beta += weight_uni_dist(gen)*2;
+        while (weights[index] < beta) {  // While there is some cumulative weight to consume
+            beta -= weights[index];
+            index = (++index) % weights.size();
+        }
+        new_particles.emplace_back(particles[index]);
+    }
+
+    particles.swap(new_particles);
 }
 
 
