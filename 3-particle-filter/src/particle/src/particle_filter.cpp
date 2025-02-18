@@ -2,13 +2,14 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-#include <math.h> 
+#include <math.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <iterator>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <numeric>
 #include "particle/particle_filter.h"
 #include "particle/helper_functions.h"
 #include "hungarian.h"
@@ -16,13 +17,16 @@
 using namespace std;
 
 enum class AssociationStrategy {NN, HUNGARIAN};
+enum class ResampleStrategy {MULTINOMIAL, STRATIFIED};
+
 constexpr AssociationStrategy dataAssociationStrategy = AssociationStrategy::HUNGARIAN;
+constexpr ResampleStrategy resampleStrategy = ResampleStrategy::STRATIFIED;
 
 static default_random_engine gen;
 static auto hung = HungarianAlgorithm();
 
 /**
-* Initializes particle filter by randomly distributing the particles 
+* Initializes particle filter by randomly distributing the particles
 * around the map.
 * @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
 *   standard deviation of yaw [rad]]
@@ -200,10 +204,10 @@ LandmarkObs transformation(LandmarkObs observation, Particle p){
 *  Updated particle's weight (particles[i].weight *= w)
 */
 void ParticleFilter::updateWeights(
-    double std_landmark[], 
+    double std_landmark[],
 	std::vector<LandmarkObs> observations,
     Map map_landmarks) {
-    
+
     // Creates a vector that stores the map (this part can be improved)
     std::vector<LandmarkObs> mapLandmark;
     for(int j=0;j<map_landmarks.landmark_list.size();j++){
@@ -216,11 +220,11 @@ void ParticleFilter::updateWeights(
         for (const auto &observation : observations) {
             transformed_observations.push_back(transformation(observation, particle));
         }
-        
+
         dataAssociation(mapLandmark, transformed_observations);
 
         particle.weight = 1.0;
-        
+
         // Compute the probability
 		// The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
 		// We compute basically the distance between the observed landmarks and the landmarks in range from the position of the particle
@@ -229,7 +233,7 @@ void ParticleFilter::updateWeights(
             obs_x = transformed_observations[k].x;
             obs_y = transformed_observations[k].y;
 
-            //get the associated landmark 
+            //get the associated landmark
             for (int p = 0; p < mapLandmark.size(); p++) {
                 if (transformed_observations[k].id == mapLandmark[p].id) {
                     l_x = mapLandmark[p].x;
@@ -237,19 +241,15 @@ void ParticleFilter::updateWeights(
                 }
             }
 
-			// How likely a set of landmarks measurements are, given a prediction state of the car 
+			// How likely a set of landmarks measurements are, given a prediction state of the car
             double w = exp( -( pow(l_x-obs_x,2)/(2*pow(std_landmark[0],2)) + pow(l_y-obs_y,2)/(2*pow(std_landmark[1],2)) ) ) / ( 2*M_PI*std_landmark[0]*std_landmark[1] );
             particle.weight *= w;
         }
 
-    }    
+    }
 }
 
-/**
-* Resamples from the updated set of particles to form
-* the new set of particles.
-*/
-void ParticleFilter::resample() {
+void mutlinomial_resampling(vector<Particle> &particles) {
     vector<Particle> new_particles;
     new_particles.reserve(particles.size());
 
@@ -259,16 +259,17 @@ void ParticleFilter::resample() {
 
     vector<double> weights;
     weights.reserve(particles.size());
+
     for(const auto &particle : particles) {
         weights.push_back(particle.weight);
     }
 
     float max_w = *std::max_element(weights.begin(), weights.end());
-    uniform_real_distribution<double> weight_uni_dist(0.0, max_w);
+    uniform_real_distribution<double> weight_uni_dist(0.0, max_w*2);
 
     // Resempling wheel
     for(const auto &_ : particles) {
-        beta += weight_uni_dist(gen)*2;
+        beta += weight_uni_dist(gen);
         while (weights[index] < beta) {  // While there is some cumulative weight to consume
             beta -= weights[index];
             index = (++index) % weights.size();
@@ -277,6 +278,57 @@ void ParticleFilter::resample() {
     }
 
     particles.swap(new_particles);
+}
+
+void stratified_resampling(vector<Particle> &particles) {
+    vector<Particle> new_particles;
+    new_particles.reserve(particles.size());
+    
+    vector<double> weights;
+    weights.reserve(particles.size());
+
+    for(const auto &particle : particles) {
+        weights.push_back(particle.weight);
+    }
+
+    double weights_total = std::accumulate(weights.begin(), weights.end(), 0.0);
+
+    for (auto &w : weights) {
+        w /= weights_total;
+    }
+
+    vector<double> weights_cumulative(weights.size());
+    std::partial_sum(weights.begin(), weights.end(), weights_cumulative.begin());
+    double substrate_width = weights_cumulative.back()/particles.size();
+
+    for (int i = 0; i<particles.size(); ++i) {
+        // 3 particles:
+        // 0          1             2              3
+        // |----------|-------------|--------------|
+        // 0         100           200             300
+        
+        std::uniform_real_distribution<double> distribution(i * substrate_width, (i+1) * substrate_width);
+        auto draw = distribution(gen);
+        
+        int j=0;
+        for (; j < weights.size() && draw > weights_cumulative[j]; ++j);
+        new_particles.emplace_back(particles[j % particles.size()]);
+    }
+
+    particles.swap(new_particles);
+}
+
+/**
+* Resamples from the updated set of particles to form
+* the new set of particles.
+*/
+void ParticleFilter::resample() {
+    if constexpr (resampleStrategy == ResampleStrategy::MULTINOMIAL) {
+        mutlinomial_resampling(this->particles);
+    }
+    else if constexpr (resampleStrategy == ResampleStrategy::STRATIFIED) {
+        stratified_resampling(this->particles);
+    }
 }
 
 
