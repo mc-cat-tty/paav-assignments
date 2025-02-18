@@ -49,23 +49,32 @@ void ParticleFilter::init_random(double std[], int nParticles) {
     is_initialized = true;
 }
 
-/*
-* TODO
-* This function initializes the particles using an initial guess
-* Input:
-*  x,y,theta - position and orientation
-*  std - noise that might be added to the position
-*  nParticles - number of particles
-*/ 
-void ParticleFilter::init(double x, double y, double theta, double std[],int nParticles) {
-    num_particles = nParticles;
-    normal_distribution<double> dist_x(-std[0], std[0]); //random value between [-noise.x,+noise.x]
-    normal_distribution<double> dist_y(-std[1], std[1]);
-    normal_distribution<double> dist_theta(-std[2], std[2]);
+/**
+* Initializes particle filter by initializing particles to Gaussian
+* distribution around first position and all the weights to 1.
+* @param x Initial x position [m] (simulated estimate from GPS)
+* @param y Initial y position [m]
+* @param theta Initial orientation [rad]
+* @param std[] Array of dimension 3 [standard deviation of x [m], standard deviation of y [m]
+*   standard deviation of yaw [rad]]
+* @param nParticles Number of particles used by the algorithm
+*/
+void ParticleFilter::init(double x, double y, double theta, double std[], int nParticles) {
+    particles.reserve(nParticles);
 
-	//TODO
-    
-    is_initialized=true;
+    normal_distribution<double> noise_dist_x(0, std[0]);
+    normal_distribution<double> noise_dist_y(0, std[1]);
+    normal_distribution<double> noise_dist_theta(0, std[2]);
+
+    for (int i=0; i<nParticles; ++i) {
+        particles.emplace_back(
+            x + noise_dist_x(gen),
+            y + noise_dist_y(gen),
+            theta + noise_dist_theta(gen)
+        );
+    }
+
+    is_initialized = true;
 }
 
 /**
@@ -91,7 +100,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     for (auto &particle : particles) {
         auto pe = particle.eigenize();
 
-        if (fabs(yaw_rate) < 0.000001) {  // Moving forward
+        if (fabs(yaw_rate) < 0.0001) {  // Moving forward
             pe += Eigen::Vector3d{cos(pe(2)) * velocity, sin(pe(2)) * velocity, yaw_rate} * delta_t;  // Add x, y, theta motion components
         }
         else {  // Turning
@@ -103,7 +112,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
         }
 
         auto noise = noise_distribution.get_rand();
-        pe += noise * delta_t;  // Add noise proportional to prediction horizon
+        // pe += noise * delta_t;  // Add noise proportional to prediction horizon
         particle = pe;
     }
 }
@@ -133,8 +142,9 @@ void dataAssociation(const std::vector<LandmarkObs>& predicted, std::vector<Land
 
             observation.id = predicted[nearest_index].id;
         }
+        // A KD Tree can be used to speedup nn search
     }
-    else {
+    else if constexpr (dataAssociationStrategy == AssociationStrategy::HUNGARIAN) {
         vector< vector<double> > distances;
         distances.reserve(observations.size());
 
@@ -156,8 +166,6 @@ void dataAssociation(const std::vector<LandmarkObs>& predicted, std::vector<Land
             observations[i].id = assignment[i];
         }
     }
-
-    // A KD Tree can be used to speedup nn search
 }
 
 

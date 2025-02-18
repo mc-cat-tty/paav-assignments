@@ -32,8 +32,8 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_particles(new pcl::PointCloud<pcl::Poi
 /*
 * Define the proper noise values
 */
-double sigma_init [3] = {0.05, 0.05, 0.05};  //[x,y,theta] initialization noise. 
-double sigma_pos [3]  = {0.01, 0.01, 0.01}; //[x,y,theta] movement noise. Try values between [0.5 and 0.01]
+double sigma_init [3] = {0.2, 0.2, 0.2};  //[x,y,theta] initialization noise. 
+double sigma_pos [3]  = {0.02, 0.02, 0.02}; //[x,y,theta] movement noise. Try values between [0.5 and 0.01]
 double sigma_landmark [2] = {0.1, 0.1};     //[x,y] sensor measurement noise. Try values between [0.5 and 0.1]
 std::vector<Color> colors = {Color(1,0,0), Color(1,1,0), Color(0,0,1), Color(1,0,1), Color(0,1,1)};
 control_s odom;
@@ -215,8 +215,8 @@ int main(int argc,char **argv)
     pf.set_map_size(map_mille.get_x_boundaries(), map_mille.get_y_boundaries());
     
     // Init the particle filter
-    // pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
-    pf.init_random(sigma_init, NPARTICLES);
+    pf.init(GPS_x, GPS_y, GPS_theta, sigma_init, NPARTICLES);
+    // pf.init_random(sigma_init, NPARTICLES);
 
     // Render all the particles
     for(int i=0;i<NPARTICLES;i++){

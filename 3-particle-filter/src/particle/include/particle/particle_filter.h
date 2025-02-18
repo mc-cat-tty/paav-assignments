@@ -62,8 +62,8 @@ public:
 	}
 
 	/**
-	 * init Initializes particle filter by initializing particles to Gaussian
-	 *   distribution around first position and all the weights to 1.
+	 * Initializes particle filter by initializing particles to Gaussian
+	 * distribution around first position and all the weights to 1.
 	 * @param x Initial x position [m] (simulated estimate from GPS)
 	 * @param y Initial y position [m]
 	 * @param theta Initial orientation [rad]
