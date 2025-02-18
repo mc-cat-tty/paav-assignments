@@ -22,7 +22,6 @@ public:
 
 		auto min_x = std::min_element(landmark_list.begin(), landmark_list.end(), cmp_x)->x_f;
 		auto max_x = std::max_element(landmark_list.begin(), landmark_list.end(), cmp_x)->x_f;
-		std::cout << min_x << std::endl;
 
 		return std::make_pair(min_x, max_x);
 	}

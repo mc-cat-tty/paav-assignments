@@ -14,9 +14,11 @@ with open('res.txt','r') as file:
     for line in file:
         # reading each word        
         word = line.split()
+        if len(word) != 3: continue  # Malformed line
         x.append(float(word[0]))
         y.append(float(word[1]))  
         time.append(float(word[2]))
+
 
 with open('pf_slam.txt','r') as file:
     # reading each line    

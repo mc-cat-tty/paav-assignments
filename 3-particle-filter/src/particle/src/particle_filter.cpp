@@ -8,6 +8,7 @@
 #include <string>
 #include <iterator>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include "particle/particle_filter.h"
 #include "particle/helper_functions.h"
 
@@ -32,9 +33,6 @@ void ParticleFilter::init_random(double std[], int nParticles) {
     std::uniform_real_distribution<double> dist_x(map_x_boundaries.first, map_x_boundaries.second);
     std::uniform_real_distribution<double> dist_y(map_y_boundaries.first, map_y_boundaries.second);
     std::uniform_real_distribution<double> dist_theta(-M_PI, M_PI);
-    
-    std::cout << map_x_boundaries.first << " " << map_x_boundaries.second << std::endl;
-    std::cout << map_y_boundaries.first << " " << map_y_boundaries.second << std::endl;
 
     for (int i=0; i<nParticles; ++i) {
         particles.emplace_back(
@@ -49,7 +47,7 @@ void ParticleFilter::init_random(double std[], int nParticles) {
 
 /*
 * TODO
-* This function initialize the particles using an initial guess
+* This function initializes the particles using an initial guess
 * Input:
 *  x,y,theta - position and orientation
 *  std - noise that might be added to the position
@@ -90,7 +88,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     for (auto &particle : particles) {
         auto pe = particle.eigenize();
 
-        if (fabs(yaw_rate) < 0.00001) {  // Moving forward
+        if (fabs(yaw_rate) < 0.00000001) {  // Moving forward
             pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
         }
         else {  // Turning
@@ -101,7 +99,7 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
             };
         }
 
-        pe += noise_distribution.get_rand();  // Add noise
+        // pe += noise_distribution.get_rand();  // Add noise
         particle = pe;
     }
 }
@@ -145,13 +143,10 @@ void dataAssociation(const std::vector<LandmarkObs>& predicted, std::vector<Land
 LandmarkObs transformation(LandmarkObs observation, Particle p){
     LandmarkObs global;
 
-    // Homogeneous transformation
-    Eigen::Matrix3d T;
-    T << cos(p.theta), -sin(p.theta), p.x,
-         sin(p.theta),  cos(p.theta), p.y,
-         0,           0,           1;
+    Eigen::Transform<double, 2, Eigen::Affine> T;
+    T = Eigen::Translation2d(p.x, p.y) * Eigen::Rotation2D(p.theta);
 
-    Eigen::Vector3d local_obs{observation.x, observation.y, 1.0};
+    Eigen::Vector2d local_obs{observation.x, observation.y};
     auto global_obs = T * local_obs;
 
     return {observation.id, global_obs(0), global_obs(1)};
@@ -185,6 +180,8 @@ void ParticleFilter::updateWeights(
         }
         
         dataAssociation(mapLandmark, transformed_observations);
+
+        particle.weight = 1.0;
         
         // Compute the probability
 		// The particles final weight can be represented as the product of each measurement’s Multivariate-Gaussian probability density
