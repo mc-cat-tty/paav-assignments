@@ -15,8 +15,8 @@ with open(argv[1],'r') as file:
         # reading each word        
         word = line.split()
         if len(word) != 3: continue  # Malformed line
-        x.append(float(word[0]))
-        y.append(float(word[1]))  
+        x.append(-float(word[0]))
+        y.append(-float(word[1]))  
         time.append(float(word[2]))
     
 
