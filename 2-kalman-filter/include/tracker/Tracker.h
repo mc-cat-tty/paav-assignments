@@ -32,7 +32,7 @@ public:
 
   // getters
   const std::vector<Tracklet> &getTracks() const { return tracks_; }
-  inline const double getLongestPath(int &track_id) const;
+  void updateLongestPath();
 
 private:
   // tracklets
@@ -47,6 +47,9 @@ private:
   double distance_threshold_, distance_threshold_squared_;
   double covariance_threshold;
   int loss_threshold;
+  
+  double longest_path;
+  int longest_path_idx;
 };
 
 #endif // TRACKER_H_

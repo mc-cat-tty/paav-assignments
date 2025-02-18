@@ -2,6 +2,8 @@
 #include <eigen3/Eigen/Dense>
 #include <algorithm>
 #include <limits>
+#include <iomanip> 
+#include <iostream> 
 
 #define LOGGING_ON true
 #include <logger.hpp>
@@ -17,6 +19,10 @@ Tracker::Tracker()
     // number of frames the track has not been seen
     // Roughly loss_threshold/10 seconds withouth seeing the object have to pass to remove it
     loss_threshold = 200;
+
+    longest_path = 0;
+    longest_path_idx = 0;
+  
 }
 
 
@@ -44,8 +50,20 @@ void Tracker::addTracks()
     }
 }
 
-const double getLongestPath(int &track_id) const {
-    for (const auto [track_idx, length] : )
+void Tracker::updateLongestPath() {
+    static auto logger = logger::Logger("LONGEST PATH");
+
+    for (const auto &t : tracks_) {
+        if (t.length > longest_path) {
+            longest_path = t.length;
+            longest_path_idx = t.getId();
+        }
+    }
+
+    std::cout
+        << "[Longest Path]"
+        << longest_path_idx << ": "
+        << std::setprecision(3) << longest_path << "m" << std::endl;
 }
 
 
@@ -144,4 +162,6 @@ void Tracker::track(const std::vector<double> &centroids_x,
 
     this->removeTracks();
     this->addTracks();
+
+    this->updateLongestPath();
 }

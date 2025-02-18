@@ -22,9 +22,10 @@ public:
 
   double getXCovariance() const { return kf_.getXCovariance(); }
   double getYCovariance() const { return kf_.getYCovariance(); }
-  int getId() { return id_; }
+  int getId() const { return id_; }
 
   int getLossCount() { return loss_count_; }
+  double length;
 
 private:
   // filter
@@ -36,7 +37,6 @@ private:
   // number of loss since last update
   int loss_count_;
 
-  unsigned length;
 };
 
 #endif // TRACKLET_H_
