@@ -11,12 +11,15 @@
 #include <Eigen/Geometry>
 #include "particle/particle_filter.h"
 #include "particle/helper_functions.h"
+#include "hungarian.h"
 
 using namespace std;
 
+enum class AssociationStrategy {NN, HUNGARIAN};
+constexpr AssociationStrategy dataAssociationStrategy = AssociationStrategy::HUNGARIAN;
+
 static default_random_engine gen;
-
-
+static auto hung = HungarianAlgorithm();
 
 /**
 * Initializes particle filter by randomly distributing the particles 
@@ -34,6 +37,7 @@ void ParticleFilter::init_random(double std[], int nParticles) {
     std::uniform_real_distribution<double> dist_y(map_y_boundaries.first, map_y_boundaries.second);
     std::uniform_real_distribution<double> dist_theta(-M_PI, M_PI);
 
+    particles.reserve(nParticles);
     for (int i=0; i<nParticles; ++i) {
         particles.emplace_back(
             dist_x(gen) + noise_dist_x(gen),
@@ -76,7 +80,6 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     normal_distribution<double> noise_dist_x(0, std[0]);
     normal_distribution<double> noise_dist_y(0, std[1]);
     normal_distribution<double> noise_dist_theta(0, std[2]);
-    const double displacement = velocity*delta_t;
 
     auto noise_distribution = MultivariateNormalDistribution<double>(
         noise_dist_x,
@@ -88,8 +91,8 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
     for (auto &particle : particles) {
         auto pe = particle.eigenize();
 
-        if (fabs(yaw_rate) < 0.00000001) {  // Moving forward
-            pe += Eigen::Vector3d{cos(pe(2)) * displacement, sin(pe(2)) * displacement, 0};  // Add x, y motion components
+        if (fabs(yaw_rate) < 0.000001) {  // Moving forward
+            pe += Eigen::Vector3d{cos(pe(2)) * velocity, sin(pe(2)) * velocity, yaw_rate} * delta_t;  // Add x, y, theta motion components
         }
         else {  // Turning
             pe += Eigen::Vector3d{
@@ -99,7 +102,8 @@ void ParticleFilter::prediction(double delta_t, double std[], double velocity, d
             };
         }
 
-        // pe += noise_distribution.get_rand();  // Add noise
+        auto noise = noise_distribution.get_rand();
+        pe += noise * delta_t;  // Add noise proportional to prediction horizon
         particle = pe;
     }
 }
@@ -118,14 +122,39 @@ void dataAssociation(const std::vector<LandmarkObs>& predicted, std::vector<Land
         predicted_matrix(i, 1) = predicted[i].y;
     }
 
-    for (auto &observation : observations) {
-        Eigen::Vector2d observation_vector(observation.x, observation.y);
-        Eigen::VectorXd squared_distances = (predicted_matrix.rowwise() - observation_vector.transpose()).rowwise().squaredNorm();
 
-        Eigen::Index nearest_index;
-        squared_distances.minCoeff(&nearest_index);
+    if constexpr (dataAssociationStrategy == AssociationStrategy::NN) {
+        for (auto &observation : observations) {
+            Eigen::Vector2d observation_vector(observation.x, observation.y);
+            Eigen::VectorXd squared_distances = (predicted_matrix.rowwise() - observation_vector.transpose()).rowwise().squaredNorm();
 
-        observation.id = predicted[nearest_index].id;
+            Eigen::Index nearest_index;
+            squared_distances.minCoeff(&nearest_index);
+
+            observation.id = predicted[nearest_index].id;
+        }
+    }
+    else {
+        vector< vector<double> > distances;
+        distances.reserve(observations.size());
+
+        for (const auto &p: observations) {
+            distances.emplace_back();
+            distances.back().reserve(predicted.size());
+
+            for (const auto &o : predicted) {
+                distances.back().emplace_back(
+                    (p.x-o.x) * (p.x-o.x) + (p.y-o.y) * (p.y-o.y)
+                );
+            }
+        }
+
+        vector<int> assignment;
+        hung.Solve(distances, assignment);
+
+        for (int i=0; i<observations.size(); ++i) {
+            observations[i].id = assignment[i];
+        }
     }
 
     // A KD Tree can be used to speedup nn search
@@ -175,6 +204,7 @@ void ParticleFilter::updateWeights(
 
     for(auto &particle : particles){
         std::vector<LandmarkObs> transformed_observations;
+        transformed_observations.reserve(observations.size());
         for (const auto &observation : observations) {
             transformed_observations.push_back(transformation(observation, particle));
         }
@@ -213,12 +243,14 @@ void ParticleFilter::updateWeights(
 */
 void ParticleFilter::resample() {
     vector<Particle> new_particles;
+    new_particles.reserve(particles.size());
 
     double beta  = 0.0;
     uniform_int_distribution<int> dist_distribution(0, particles.size()-1);
     int index = dist_distribution(gen) % particles.size();
 
     vector<double> weights;
+    weights.reserve(particles.size());
     for(const auto &particle : particles) {
         weights.push_back(particle.weight);
     }
